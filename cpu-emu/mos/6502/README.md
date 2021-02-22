@@ -4,6 +4,9 @@
 
 * http://www.6502.org/
 * ISA: https://www.masswerk.at/6502/6502_instruction_set.html
+* http://visual6502.org/
+* http://www.obelisk.me.uk/6502/
+* https://sta.c64.org/cbm64mem.html
 
 ## Overview
 * 8 bit microcontroller
@@ -15,6 +18,23 @@
 * Signed values are two's complement, sign in bit 7 (most significant bit).
 	* (%11111111 = $FF = -1, %10000000 = $80 = -128, %01111111 = $7F = +127)
 	* good, assuming modern host CPU does two's complement arithmetic.
+
+* There are three 2-byte address locations at the very top end of the 64K address space serving as jump vectors for reset/startup and interrupt operations:
+
+$FFFA, $FFFB ... NMI (Non-Maskable Interrupt) vector
+$FFFC, $FFFD ... RES (Reset) vector
+$FFFE, $FFFF ... IRQ (Interrupt Request) vector
+
+* At the occurrence of interrupt, the value of the program counter (PC) is put in high-low order onto the stack, followed by the value currently in the status register and control will be transferred to the address location found in the respective interrupt vector. These are recovered from the stack at the end of an interrupt routine by the RTI instruction.
+
+* since zero page is 256 bytes, this implies each page is 256 bytes?
+
+## Memory layout
+
+0000 - 00FF 	zero page
+0100 - 01FF 	stack
+0200 - FFFF     general purpose
+
 
 ## Registers
 
@@ -37,7 +57,36 @@
 
 ## Addressing Modes
 
-Accumulator, Immediate, Absolute, Zero-page, Indexed Zero-page, Indexed absolute, Implied, relative, indexed indirect, indirect indexed, absolute indirect
+The addressing mode determines the operand of the instruction
+
+(IMP) Accumulator 		A		A reg is operand
+(IMP) Implied 			i		implied (TXA)
+
+(IMM) Immediate 		#		A reg (LDA)
+
+(ZPG) Zero-page 		zp		address is in zero page (LDY $02)
+(ZPX) Zero-page, x
+(ZPY) Zerp-page, y
+
+(ABS) Absolute 			a		(LDX) isn't this also implied?
+(ABX) Absolute, x 		a,X		address at absolute address plus X used for operation
+(ABY) Absolute, y 		a,y
+
+(IDX) (Indirect, x)
+(IDY) (Indirect), y
+
+(REL) relative 			r		PC + offset (BPL $2D)
+
+
+
+Absolute indirect					(a)		used by JMP to get 16 bit value -> JMP ($A001) jumps to value at $A001 + ($A002 << 8)
+Zero page indexed indirect 			(zp,x)
+Zero page indirect indexed with Y 	(zp),y
+
+
+
+
+
 
 ## Instructions
 ```sh
@@ -119,4 +168,18 @@ NOP	....	no operation
 
 ## Assembler syntax
 
-...
+* Varies between assemblers
+```c
+// Binary
+%00001111		LDA #%0001
+// Hexadecimal
+$FA 			LDA #$0E
+// Decimal
+123 			LDA #123
+```
+
+
+## Instruction Layout
+
+* instructions a 8 bits
+* bits 7-5 are 'a', 4-2 are 'b', 1-0 are 'c' (aaabbbcc)
