@@ -2,8 +2,6 @@
 Emulate the MOS 6502 cpu 
 */
 
-#include <cstdio>
-#include <assert.h>
 #include "mos6502.hpp"
 
 void mos6502::CPU::reset() {
@@ -26,6 +24,7 @@ void mos6502::CPU::reset() {
     SP = 0;
 }
 
+// Returns -1 on illegal instruction
 u32 mos6502::CPU::execute(u32 numCycles) {
     // TODO make sure correct number of bytes for each instructions stepped over. Instructions have different sizes.
     u32 numCyclesSave = numCycles;
@@ -79,8 +78,8 @@ u32 mos6502::CPU::execute(u32 numCycles) {
             } break;
             // Invalid instruction
             default: { 
-                printf("Bad instruction\n"); 
-                assert(false); 
+                reset();
+                return -1;
             }
         }
         PC += 1;
