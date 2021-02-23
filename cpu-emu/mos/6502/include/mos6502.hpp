@@ -2,13 +2,17 @@
 
 #include <cstdint>
 
-
-
 // typedefs 
 typedef bool            u1;
 typedef std::uint8_t    u8;
 typedef std::uint16_t   u16;
 typedef std::uint32_t   u32;
+
+// Bytes to Wyde
+inline u16 B2W(u8 low, u8 high) { return (high << 8) + low; }
+
+inline u8 lowByte(u16 x)  { return x & 0x0F; }
+inline u8 highByte(u16 x) { return x & 0xF0; }
 
 namespace mos6502 {
     constexpr u16 RESET_LOC = 0xFFFD;   // Reset vector location
@@ -28,7 +32,6 @@ namespace mos6502 {
     class CPU {
      private:
         u8 getCurrentInstr() { return this->ram[this->PC]; }
-    
      public:
         // Constants
         static const u32 MEM_MAX = 1 << 16;
@@ -51,6 +54,12 @@ namespace mos6502 {
 
     enum Instructions : u8 {
         LDA_IMM = 0xA2,     // Load immediate into A
-        LDA_ZPG = 0XA5      // Load from zero-page address into A
+        LDA_ZPG = 0xA5,     // Load from zero-page addr into A
+        LDA_ZPX = 0xB5,     // Load from (zero-page addr + X) into A
+        LDA_ABS = 0xAD,     // Load from abs 16 bit addr into A
+        LDA_ABX = 0xBD,     // Load from abs 16 bit addr plus X into A
+        LDA_ABY = 0xB9,     // Load from abs 16 bit addr plus Y into A
+        LDA_IDX = 0xA1,     // ?
+        LDA_IDY = 0xB1,     // ?
     };
-};
+}

@@ -2,11 +2,11 @@
 
 ## Links
 
-* http://www.6502.org/
-* ISA: https://www.masswerk.at/6502/6502_instruction_set.html
-* http://visual6502.org/
 * http://www.obelisk.me.uk/6502/
 * https://sta.c64.org/cbm64mem.html
+* http://www.6502.org/
+* https://www.masswerk.at/6502/6502_instruction_set.html
+* http://visual6502.org/
 
 ## Overview
 * 8 bit microcontroller
@@ -27,7 +27,10 @@ $FFFE, $FFFF ... IRQ (Interrupt Request) vector
 
 * At the occurrence of interrupt, the value of the program counter (PC) is put in high-low order onto the stack, followed by the value currently in the status register and control will be transferred to the address location found in the respective interrupt vector. These are recovered from the stack at the end of an interrupt routine by the RTI instruction.
 
-* since zero page is 256 bytes, this implies each page is 256 bytes?
+* since zero page is 256 bytes, this implies each page is 256 bytes
+
+* instructions are variable width.
+
 
 ## Memory layout
 
@@ -72,18 +75,15 @@ The addressing mode determines the operand of the instruction
 (ABX) Absolute, x 		a,X		address at absolute address plus X used for operation
 (ABY) Absolute, y 		a,y
 
-(IDX) (Indirect, x)
-(IDY) (Indirect), y
+(IDX) (Indirect, x)		(aka indexed indirect)
+(IDY) (Indirect), y 	(aka indirect indexed)
 
 (REL) relative 			r		PC + offset (BPL $2D)
 
+Absolute indirect		(a)		used by JMP to get 16 bit value -> JMP ($A001) jumps to value at $A001 + ($A002 << 8)
 
-
-Absolute indirect					(a)		used by JMP to get 16 bit value -> JMP ($A001) jumps to value at $A001 + ($A002 << 8)
-Zero page indexed indirect 			(zp,x)
-Zero page indirect indexed with Y 	(zp),y
-
-
+Notes:
+* Zero-page, x will wrap around 8 bit value (LDA $FF,X when X is 1 will load $0 into A)
 
 
 
