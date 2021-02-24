@@ -152,7 +152,7 @@ CLI	....	clear interrupt disable
 CLV	....	clear overflow
 
 # Load / Store
-LDA	....	load accumulator
+LDA	    	load accumulator
 LDX	....	load X
 LDY	....	load Y
 SEC	....	set carry
