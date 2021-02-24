@@ -29,51 +29,46 @@ u32 mos6502::CPU::execute(u32 numCycles) {
     // TODO make sure correct number of bytes for each instructions stepped over. Instructions have different sizes.
     u32 numCyclesSave = numCycles;
     u8 currentInstr;
+
+    // Helper functions
+    auto set_ZN_flags = [this](u8 regVal) {
+        SR.Z = (regVal == 0);
+        SR.N = ((regVal & 0x80) != 0);
+    };
+
     while (numCycles > 0) {
         currentInstr = getCurrentInstr();
         switch (currentInstr) {
             // LDA - Load into A register
             case LDA_IMM: {
                 A = ram[PC+1];
-                SR.Z = (A == 0);
-                SR.N = ( (A & 0x80) != 0);
                 numCycles -= 2;
             } break;
             case LDA_ZPG: {
                 u8 zpAddr = ram[PC+1];
                 A = ram[zpAddr];
-                SR.Z = (A == 0);
-                SR.N = ( (A & 0x80) != 0);
                 numCycles -= 3;
             } break;
             case LDA_ZPX: {
                 u8 zpAddr = ram[PC+1];
                 zpAddr += X;
                 A = ram[zpAddr];
-                SR.Z = (A == 0);
-                SR.N = ( (A & 0x80) != 0);
                 numCycles -= 4;
             } break;
             case LDA_ABS: {
                 A = ram[B2W(ram[PC+1], ram[PC+2])];
-                SR.Z = (A == 0);
-                SR.N = ( (A & 0x80) != 0);
                 numCycles -= 4;
             } break;
             case LDA_ABX: {
                 u16 addr = B2W(ram[PC+1], ram[PC+2]);
                 u16 x_adj_addr = addr + X;
                 A = ram[x_adj_addr];
-                SR.Z = (A == 0);
-                SR.N = ( (A & 0x80) != 0);
                 numCycles -= 4 + (highByte(addr) != highByte(x_adj_addr));
             } break;
             case LDA_ABY: {
                 u16 addr = B2W(ram[PC+1], ram[PC+2]);
                 u16 y_adj_addr = addr + Y;
                 A = ram[y_adj_addr];
-                SR.Z = (A == 0);
-                SR.N = ( (A & 0x80) != 0);
                 numCycles -= 4 + (highByte(addr) != highByte(y_adj_addr));
             } break;
             case LDA_IDX: {
@@ -81,8 +76,6 @@ u32 mos6502::CPU::execute(u32 numCycles) {
                 zpAddr += X;
                 u16 realAddr = B2W(ram[zpAddr], ram[zpAddr+1]);
                 A = ram[realAddr];
-                SR.Z = (A == 0);
-                SR.N = ( (A & 0x80) != 0);
                 numCycles -= 6;
             } break;
             case LDA_IDY: {
@@ -90,8 +83,6 @@ u32 mos6502::CPU::execute(u32 numCycles) {
                 u16 addr = B2W(ram[zpAddr], ram[zpAddr+1]);
                 u16 addr_adj = addr + Y;
                 A = ram[addr_adj];
-                SR.Z = (A == 0);
-                SR.N = ( (A & 0x80) != 0);
                 numCycles -= 5 + (highByte(addr) != highByte(addr_adj));
             } break;
             // Invalid instruction
@@ -100,6 +91,7 @@ u32 mos6502::CPU::execute(u32 numCycles) {
                 return -1;
             }
         }
+        set_ZN_flags(A);    // All instructions so far set these flags, will need to move later probably
         PC += 1;
     }
     return numCyclesSave - numCycles;

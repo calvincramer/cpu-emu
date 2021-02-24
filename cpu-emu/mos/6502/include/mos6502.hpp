@@ -12,7 +12,7 @@ typedef std::uint32_t   u32;
 inline u16 B2W(u8 low, u8 high) { return (high << 8) + low; }
 
 inline u8 lowByte(u16 x)  { return x & 0x0F; }
-inline u8 highByte(u16 x) { return x & 0xF0; }
+inline u8 highByte(u16 x) { return x >> 8; }
 
 namespace mos6502 {
     constexpr u16 RESET_LOC = 0xFFFD;   // Reset vector location
