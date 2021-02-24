@@ -76,6 +76,24 @@ u32 mos6502::CPU::execute(u32 numCycles) {
                 SR.N = ( (A & 0x80) != 0);
                 numCycles -= 4 + (highByte(addr) != highByte(y_adj_addr));
             } break;
+            case LDA_IDX: {
+                u8 zpAddr = ram[PC+1];
+                zpAddr += X;
+                u16 realAddr = B2W(ram[zpAddr], ram[zpAddr+1]);
+                A = ram[realAddr];
+                SR.Z = (A == 0);
+                SR.N = ( (A & 0x80) != 0);
+                numCycles -= 6;
+            } break;
+            case LDA_IDY: {
+                u8 zpAddr = ram[PC+1];
+                u16 addr = B2W(ram[zpAddr], ram[zpAddr+1]);
+                u16 addr_adj = addr + Y;
+                A = ram[addr_adj];
+                SR.Z = (A == 0);
+                SR.N = ( (A & 0x80) != 0);
+                numCycles -= 5 + (highByte(addr) != highByte(addr_adj));
+            } break;
             // Invalid instruction
             default: { 
                 reset();

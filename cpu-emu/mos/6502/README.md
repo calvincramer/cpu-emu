@@ -63,22 +63,37 @@ $FFFE, $FFFF ... IRQ (Interrupt Request) vector
 The addressing mode determines the operand of the instruction
 
 (IMP) Accumulator 		A		A reg is operand
+
 (IMP) Implied 			i		implied (TXA)
 
 (IMM) Immediate 		#		A reg (LDA)
 
+
 (ZPG) Zero-page 		zp		address is in zero page (LDY $02)
+
 (ZPX) Zero-page, x
+
 (ZPY) Zerp-page, y
 
+
 (ABS) Absolute 			a		(LDX) isn't this also implied?
+
 (ABX) Absolute, x 		a,X		address at absolute address plus X used for operation
+
 (ABY) Absolute, y 		a,y
 
+
 (IDX) (Indirect, x)		(aka indexed indirect)
+						operand is zero-page address
+						gets 16 bit memory address from 2-byte value starting at address (operand + X)
+
 (IDY) (Indirect), y 	(aka indirect indexed)
+						operand is zero-page address
+						gets 16 bit memory adderss from Y + (2-byte value starting at operand)
+
 
 (REL) relative 			r		PC + offset (BPL $2D)
+
 
 Absolute indirect		(a)		used by JMP to get 16 bit value -> JMP ($A001) jumps to value at $A001 + ($A002 << 8)
 

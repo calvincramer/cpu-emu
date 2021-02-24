@@ -59,7 +59,7 @@ namespace mos6502 {
         LDA_ABS = 0xAD,     // Load from abs 16 bit addr into A
         LDA_ABX = 0xBD,     // Load from abs 16 bit addr plus X into A
         LDA_ABY = 0xB9,     // Load from abs 16 bit addr plus Y into A
-        LDA_IDX = 0xA1,     // ?
-        LDA_IDY = 0xB1,     // ?
+        LDA_IDX = 0xA1,     // Load from 16 bit addr starting at low byte (zero-page addr + X)
+        LDA_IDY = 0xB1,     // Load from 16 bit addr Y + (2-byte addr starting at operand)
     };
 }

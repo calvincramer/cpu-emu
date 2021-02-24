@@ -278,6 +278,123 @@ TEST_F(LDA, AbsoluteYPageCross) {
     ASSERT_TRUE(cpu.SR.N == 0);
 }
 
+
+TEST_F(LDA, IndexedIndirectZero) {
+    cpu[RESET_LOC] = LDA_IDX;
+    cpu[RESET_LOC + 1] = 0x10;
+    cpu.X = 0x5;
+    cpu[0x0015] = 0x34;
+    cpu[0x0016] = 0x12;     // Should load from 0x1234
+    cpu[0x1234] = 0x0;
+
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu.A == 0x0);
+    ASSERT_TRUE(cpu.SR.Z == 1);
+    ASSERT_TRUE(cpu.SR.N == 0);
+}
+
+TEST_F(LDA, IndexedIndirectPositive) {
+    cpu[RESET_LOC] = LDA_IDX;
+    cpu[RESET_LOC + 1] = 0x10;
+    cpu.X = 0x5;
+    cpu[0x0015] = 0x34;
+    cpu[0x0016] = 0x12;     // Should load from 0x1234
+    cpu[0x1234] = 0x42;
+
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu.A == 0x42);
+    ASSERT_TRUE(cpu.SR.Z == 0);
+    ASSERT_TRUE(cpu.SR.N == 0);
+}
+
+TEST_F(LDA, IndexedIndirectNegative) {
+    cpu[RESET_LOC] = LDA_IDX;
+    cpu[RESET_LOC + 1] = 0x10;
+    cpu.X = 0x5;
+    cpu[0x0015] = 0x34;
+    cpu[0x0016] = 0x12;     // Should load from 0x1234
+    cpu[0x1234] = 0xFF;
+
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu.A == 0xFF);
+    ASSERT_TRUE(cpu.SR.Z == 0);
+    ASSERT_TRUE(cpu.SR.N == 1);
+}
+
+TEST_F(LDA, IndexedIndirectWrapZeroPage) {
+    cpu[RESET_LOC] = LDA_IDX;
+    cpu[RESET_LOC + 1] = 0x30;
+    cpu.X = 0xF0;
+    cpu[0x0020] = 0x34;
+    cpu[0x0021] = 0x12;     // Should load from 0x1234
+    cpu[0x1234] = 0x31;
+
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu.A == 0x31);
+    ASSERT_TRUE(cpu.SR.Z == 0);
+    ASSERT_TRUE(cpu.SR.N == 0);
+}
+
+
+
+TEST_F(LDA, IndirectIndexedZero) {
+    cpu[RESET_LOC] = LDA_IDY;
+    cpu[RESET_LOC + 1] = 0x10;
+    cpu.Y = 0x5;
+    cpu[0x0010] = 0x34;
+    cpu[0x0011] = 0x12;     // Should load from 0x1234 + 0x5
+    cpu[0x1239] = 0x0;
+
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu.A == 0x0);
+    ASSERT_TRUE(cpu.SR.Z == 1);
+    ASSERT_TRUE(cpu.SR.N == 0);
+}
+
+TEST_F(LDA, IndirectIndexedPositive) {
+    cpu[RESET_LOC] = LDA_IDY;
+    cpu[RESET_LOC + 1] = 0x10;
+    cpu.Y = 0x5;
+    cpu[0x0010] = 0x34;
+    cpu[0x0011] = 0x12;     // Should load from 0x1234 + 0x5
+    cpu[0x1239] = 0x42;
+
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu.A == 0x42);
+    ASSERT_TRUE(cpu.SR.Z == 0);
+    ASSERT_TRUE(cpu.SR.N == 0);
+}
+
+TEST_F(LDA, IndirectIndexedNegative) {
+    cpu[RESET_LOC] = LDA_IDY;
+    cpu[RESET_LOC + 1] = 0x10;
+    cpu.Y = 0x5;
+    cpu[0x0010] = 0x34;
+    cpu[0x0011] = 0x12;     // Should load from 0x1234 + 0x5
+    cpu[0x1239] = 0xFF;
+
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu.A == 0xFF);
+    ASSERT_TRUE(cpu.SR.Z == 0);
+    ASSERT_TRUE(cpu.SR.N == 1);
+}
+
+TEST_F(LDA, IndirectIndexedPageCross) {
+    cpu[RESET_LOC] = LDA_IDY;
+    cpu[RESET_LOC + 1] = 0x10;
+    cpu.Y = 0xFF;
+    cpu[0x0010] = 0x34;
+    cpu[0x0011] = 0x12;     // Should load from 0x1234 + 0xFF
+    cpu[0x1333] = 0xee;
+
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu.A == 0xee);
+    ASSERT_TRUE(cpu.SR.Z == 0);
+    ASSERT_TRUE(cpu.SR.N == 1);
+}
+
+
+
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
