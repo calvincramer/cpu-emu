@@ -32,6 +32,10 @@ namespace mos6502 {
     class CPU {
      private:
         u8 getCurrentInstr() { return this->ram[this->PC]; }
+        inline void set_ZN_flags(u8& reg) {
+            SR.Z = (reg == 0);
+            SR.N = ((reg & 0x80) != 0);
+        }
      public:
         // Constants
         static const u32 MEM_MAX = 1 << 16;
@@ -53,7 +57,7 @@ namespace mos6502 {
     };
 
     enum Instructions : u8 {
-        LDA_IMM = 0xA2,     // Load immediate into A
+        LDA_IMM = 0xA9,     // Load immediate into A
         LDA_ZPG = 0xA5,     // Load from zero-page addr into A
         LDA_ZPX = 0xB5,     // Load from (zero-page addr + X) into A
         LDA_ABS = 0xAD,     // Load from abs 16 bit addr into A
@@ -61,5 +65,61 @@ namespace mos6502 {
         LDA_ABY = 0xB9,     // Load from abs 16 bit addr plus Y into A
         LDA_IDX = 0xA1,     // Load from 16 bit addr starting at low byte (zero-page addr + X)
         LDA_IDY = 0xB1,     // Load from 16 bit addr Y + (2-byte addr starting at operand)
+
+        LDX_IMM = 0xA2,
+        LDX_ZPG = 0xA6,
+        LDX_ZPY = 0xB6,
+        LDX_ABS = 0xAE,
+        LDX_ABY = 0xBE,
+
+        LDY_IMM = 0xA0,
+        LDY_ZPG = 0xA4,
+        LDY_ZPX = 0xB4,
+        LDY_ABS = 0xAC,
+        LDY_ABX = 0xBC,
+    };
+
+    // Base number of cycles used per instruction, actual may be more on certain circumstances
+    const u8 NUM_CYCLES_BASE [256] = {
+    //  -0                       -8
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 0-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 1-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 2-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 3-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 4-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 5-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 6-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 7-
+
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 8-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 9-
+        0, 6, 2, 0, 0, 3, 0, 0,  0, 2, 0, 0, 0, 4, 0, 0,    // A-
+        0, 5, 0, 0, 0, 4, 0, 0,  0, 4, 0, 0, 0, 4, 0, 0,    // B-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // C-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // D-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // E-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // F-
+    };
+
+    // Number of bytes for each instruction
+    const u8 INSTR_BYTES [256] = {
+    //  -0                       -8
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 0-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 1-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 2-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 3-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 4-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 5-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 6-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 7-
+
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 8-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // 9-
+        2, 2, 2, 0, 2, 2, 2, 0,  0, 2, 0, 0, 3, 3, 3, 0,    // A-
+        0, 2, 0, 0, 2, 2, 2, 0,  0, 3, 0, 0, 3, 3, 3, 0,    // B-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // C-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // D-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // E-
+        0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,    // F-
     };
 }

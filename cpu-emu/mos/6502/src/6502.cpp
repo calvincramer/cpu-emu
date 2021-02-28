@@ -31,68 +31,73 @@ u32 mos6502::CPU::execute(u32 numCycles) {
     u8 currentInstr;
 
     // Helper functions
-    auto set_ZN_flags = [this](u8 regVal) {
-        SR.Z = (regVal == 0);
-        SR.N = ((regVal & 0x80) != 0);
+
+    auto load_imm = [this](u8& into) { 
+        into = ram[PC+1]; 
+        set_ZN_flags(into);
+    };
+
+    // Will wrap adjusted zero page address around 8 bytes
+    auto load_zp =  [this](u8& into, u8 offset = 0) { 
+        into = ram[(u8) (ram[PC+1] + offset)]; 
+        set_ZN_flags(into);
+    };
+
+    auto load_abs = [this, &numCycles](u8& into, u8 offset = 0) { 
+        u16 addr = B2W(ram[PC+1], ram[PC+2]);
+        u16 addr_adj = addr + offset;
+        into = ram[addr_adj]; 
+        numCycles -= (highByte(addr) != highByte(addr_adj));
+        set_ZN_flags(into);
     };
 
     while (numCycles > 0) {
         currentInstr = getCurrentInstr();
+        // Execute instruction
         switch (currentInstr) {
             // LDA - Load into A register
-            case LDA_IMM: {
-                A = ram[PC+1];
-                numCycles -= 2;
-            } break;
-            case LDA_ZPG: {
-                u8 zpAddr = ram[PC+1];
-                A = ram[zpAddr];
-                numCycles -= 3;
-            } break;
-            case LDA_ZPX: {
-                u8 zpAddr = ram[PC+1];
-                zpAddr += X;
-                A = ram[zpAddr];
-                numCycles -= 4;
-            } break;
-            case LDA_ABS: {
-                A = ram[B2W(ram[PC+1], ram[PC+2])];
-                numCycles -= 4;
-            } break;
-            case LDA_ABX: {
-                u16 addr = B2W(ram[PC+1], ram[PC+2]);
-                u16 x_adj_addr = addr + X;
-                A = ram[x_adj_addr];
-                numCycles -= 4 + (highByte(addr) != highByte(x_adj_addr));
-            } break;
-            case LDA_ABY: {
-                u16 addr = B2W(ram[PC+1], ram[PC+2]);
-                u16 y_adj_addr = addr + Y;
-                A = ram[y_adj_addr];
-                numCycles -= 4 + (highByte(addr) != highByte(y_adj_addr));
-            } break;
+            case LDA_IMM: load_imm(A);      break;
+            case LDA_ZPG: load_zp(A);       break;
+            case LDA_ZPX: load_zp(A, X);    break;
+            case LDA_ABS: load_abs(A);      break;
+            case LDA_ABX: load_abs(A, X);   break;
+            case LDA_ABY: load_abs (A, Y);  break;
             case LDA_IDX: {
                 u8 zpAddr = ram[PC+1];
                 zpAddr += X;
                 u16 realAddr = B2W(ram[zpAddr], ram[zpAddr+1]);
                 A = ram[realAddr];
-                numCycles -= 6;
+                set_ZN_flags(A);
             } break;
             case LDA_IDY: {
                 u8 zpAddr = ram[PC+1];
                 u16 addr = B2W(ram[zpAddr], ram[zpAddr+1]);
                 u16 addr_adj = addr + Y;
                 A = ram[addr_adj];
-                numCycles -= 5 + (highByte(addr) != highByte(addr_adj));
+                numCycles -= (highByte(addr) != highByte(addr_adj));
+                set_ZN_flags(A);
             } break;
+            // LDX - Load into X register
+            case LDX_IMM : load_imm(X);     break;
+            case LDX_ZPG : load_zp(X);      break;
+            case LDX_ZPY : load_zp(X, Y);   break;
+            case LDX_ABS : load_abs(X);     break;
+            case LDX_ABY : load_abs(X, Y);  break;
+            // LDY - Load in Y register
+            case LDY_IMM : load_imm(Y);     break;
+            case LDY_ZPG : load_zp(Y);      break;
+            case LDY_ZPX : load_zp(Y, X);   break;
+            case LDY_ABS : load_abs(Y);     break;
+            case LDY_ABX : load_abs(Y, X);  break;
+
             // Invalid instruction
             default: { 
                 reset();
                 return -1;
             }
         }
-        set_ZN_flags(A);    // All instructions so far set these flags, will need to move later probably
-        PC += 1;
+        numCycles -= NUM_CYCLES_BASE[currentInstr];
+        PC += INSTR_BYTES[currentInstr];    
     }
     return numCyclesSave - numCycles;
 }

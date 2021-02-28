@@ -2,8 +2,8 @@
 
 ## Links
 
-* http://www.obelisk.me.uk/6502/
-* https://sta.c64.org/cbm64mem.html
+* Main: http://www.obelisk.me.uk/6502/
+* Commodore 64 memory map: https://sta.c64.org/cbm64mem.html
 * http://www.6502.org/
 * https://www.masswerk.at/6502/6502_instruction_set.html
 * http://visual6502.org/
