@@ -16,8 +16,8 @@
 * Processor Stack: LIFO, top down, 8 bit range, 0x0100 - 0x01FF
 
 * Signed values are two's complement, sign in bit 7 (most significant bit).
-	* (%11111111 = $FF = -1, %10000000 = $80 = -128, %01111111 = $7F = +127)
-	* good, assuming modern host CPU does two's complement arithmetic.
+    * (%11111111 = $FF = -1, %10000000 = $80 = -128, %01111111 = $7F = +127)
+    * good, assuming modern host CPU does two's complement arithmetic.
 
 * There are three 2-byte address locations at the very top end of the 64K address space serving as jump vectors for reset/startup and interrupt operations:
 
@@ -34,8 +34,8 @@ $FFFE, $FFFF ... IRQ (Interrupt Request) vector
 
 ## Memory layout
 
-0000 - 00FF 	zero page
-0100 - 01FF 	stack
+0000 - 00FF     zero page
+0100 - 01FF     stack
 0200 - FFFF     general purpose
 
 
@@ -62,40 +62,40 @@ $FFFE, $FFFF ... IRQ (Interrupt Request) vector
 
 The addressing mode determines the operand of the instruction
 
-(IMP) Accumulator 		A		A reg is operand
+(IMP) Accumulator       A       A reg is operand
 
-(IMP) Implied 			i		implied (TXA)
+(IMP) Implied           i       implied (TXA)
 
-(IMM) Immediate 		#		A reg (LDA)
+(IMM) Immediate         #       A reg (LDA)
 
 
-(ZPG) Zero-page 		zp		address is in zero page (LDY $02)
+(ZPG) Zero-page         zp      address is in zero page (LDY $02)
 
 (ZPX) Zero-page, x
 
 (ZPY) Zerp-page, y
 
 
-(ABS) Absolute 			a		(LDX) isn't this also implied?
+(ABS) Absolute          a       (LDX) isn't this also implied?
 
-(ABX) Absolute, x 		a,X		address at absolute address plus X used for operation
+(ABX) Absolute, x       a,X     address at absolute address plus X used for operation
 
-(ABY) Absolute, y 		a,y
-
-
-(IDX) (Indirect, x)		(aka indexed indirect)
-						operand is zero-page address
-						gets 16 bit memory address from 2-byte value starting at address (operand + X)
-
-(IDY) (Indirect), y 	(aka indirect indexed)
-						operand is zero-page address
-						gets 16 bit memory adderss from Y + (2-byte value starting at operand)
+(ABY) Absolute, y       a,y
 
 
-(REL) relative 			r		PC + offset (BPL $2D)
+(IDX) (Indirect, x)     (aka indexed indirect)
+                        operand is zero-page address
+                        gets 16 bit memory address from 2-byte value starting at address (operand + X)
+
+(IDY) (Indirect), y     (aka indirect indexed)
+                        operand is zero-page address
+                        gets 16 bit memory adderss from Y + (2-byte value starting at operand)
 
 
-Absolute indirect		(a)		used by JMP to get 16 bit value -> JMP ($A001) jumps to value at $A001 + ($A002 << 8)
+(REL) relative          r       PC + offset (BPL $2D)
+
+
+Absolute indirect       (a)     used by JMP to get 16 bit value -> JMP ($A001) jumps to value at $A001 + ($A002 << 8)
 
 Notes:
 * Zero-page, x will wrap around 8 bit value (LDA $FF,X when X is 1 will load $0 into A)
@@ -106,79 +106,83 @@ Notes:
 ## Instructions
 ```sh
 # Arithmetic
-ADC	....	add with carry
-AND	....	and (with accumulator)
-ASL	....	arithmetic shift left
-DEC	....	decrement
-DEX	....	decrement X
-DEY	....	decrement Y
-INC	....	increment
-INX	....	increment X
-INY	....	increment Y
-SBC	....	subtract with carry
+ADC ....    add with carry
+AND ....    and (with accumulator)
+ASL ....    arithmetic shift left
+DEC ....    decrement
+DEX ....    decrement X
+DEY ....    decrement Y
+INC ....    increment
+INX ....    increment X
+INY ....    increment Y
+SBC ....    subtract with carry
 
 # Bitwise arithmetic
-EOR	....	exclusive or (with accumulator)
-ORA	....	or with accumulator
-ROL	....	rotate left
-ROR	....	rotate right
+EOR ....    exclusive or (with accumulator)
+ORA ....    or with accumulator
+ROL ....    rotate left
+ROR ....    rotate right
 
 # Shifting
-LSR	....	logical shift right
+LSR ....    logical shift right
 
 # Comparison 
-BIT	....	bit test
-CMP	....	compare (with accumulator)
-CPX	....	compare with X
-CPY	....	compare with Y
+BIT ....    bit test
+CMP ....    compare (with accumulator)
+CPX ....    compare with X
+CPY ....    compare with Y
 
 # Branch
-BCC	....	branch on carry clear
-BCS	....	branch on carry set
-BEQ	....	branch on equal (zero set)
-BMI	....	branch on minus (negative set)
-BNE	....	branch on not equal (zero clear)
-BPL	....	branch on plus (negative clear)
-BVC	....	branch on overflow clear
-BVS	....	branch on overflow set
-JMP	....	jump
-JSR	....	jump subroutine
-RTS	....	return from subroutine
+BCC ....    branch on carry clear
+BCS ....    branch on carry set
+BEQ ....    branch on equal (zero set)
+BMI ....    branch on minus (negative set)
+BNE ....    branch on not equal (zero clear)
+BPL ....    branch on plus (negative clear)
+BVC ....    branch on overflow clear
+BVS ....    branch on overflow set
+JMP ....    jump
+JSR ....    jump subroutine
+RTS ....    return from subroutine
 
 # Clear flag bits
-CLC	....	clear carry
-CLD	....	clear decimal
-CLI	....	clear interrupt disable
-CLV	....	clear overflow
+CLC ....    clear carry
+CLD ....    clear decimal
+CLI ....    clear interrupt disable
+CLV ....    clear overflow
 
 # Load / Store
-LDA	    	load accumulator
-LDX	....	load X
-LDY	....	load Y
-SEC	....	set carry
-SED	....	set decimal
-SEI	....	set interrupt disable
-STA	....	store accumulator
-STX	....	store X
-STY	....	store Y
-TAX	....	transfer accumulator to X
-TAY	....	transfer accumulator to Y
-TSX	....	transfer stack pointer to X
-TXA	....	transfer X to accumulator
-TXS	....	transfer X to stack pointer
-TYA	....	transfer Y to accumulator
+LDA     load accumulator
+LDX     load X
+LDY     load Y
+STA ....    store accumulator
+STX ....    store X
+STY ....    store Y
+
+# Set flags
+SEC ....    set carry
+SED ....    set decimal
+SEI ....    set interrupt disable
+
+# Transfer between registers
+TAX ....    transfer accumulator to X
+TAY ....    transfer accumulator to Y
+TSX ....    transfer stack pointer to X
+TXA ....    transfer X to accumulator
+TXS ....    transfer X to stack pointer
+TYA ....    transfer Y to accumulator
 
 # Push / pop stack
-PHA	....	push accumulator
-PHP	....	push processor status (SR)
-PLA	....	pull accumulator
-PLP	....	pull processor status (SR)
+PHA ....    push accumulator
+PHP ....    push processor status (SR)
+PLA ....    pull accumulator
+PLP ....    pull processor status (SR)
 
 # Interrupts
-BRK	....	break / interrupt
-RTI	....	return from interrupt
+BRK ....    break / interrupt
+RTI ....    return from interrupt
 
-NOP	....	no operation
+NOP ....    no operation
 ```
 
 ## Assembler syntax
@@ -186,11 +190,11 @@ NOP	....	no operation
 * Varies between assemblers
 ```c
 // Binary
-%00001111		LDA #%0001
+%00001111       LDA #%0001
 // Hexadecimal
-$FA 			LDA #$0E
+$FA             LDA #$0E
 // Decimal
-123 			LDA #123
+123             LDA #123
 ```
 
 

@@ -55,7 +55,6 @@ u32 mos6502::CPU::execute(u32 numCycles) {
         currentInstr = getCurrentInstr();
         // Execute instruction
         switch (currentInstr) {
-            // LDA - Load into A register
             case LDA_IMM: load_imm(A);      break;
             case LDA_ZPG: load_zp(A);       break;
             case LDA_ZPX: load_zp(A, X);    break;
@@ -77,19 +76,30 @@ u32 mos6502::CPU::execute(u32 numCycles) {
                 numCycles -= (highByte(addr) != highByte(addr_adj));
                 set_ZN_flags(A);
             } break;
-            // LDX - Load into X register
             case LDX_IMM : load_imm(X);     break;
             case LDX_ZPG : load_zp(X);      break;
             case LDX_ZPY : load_zp(X, Y);   break;
             case LDX_ABS : load_abs(X);     break;
             case LDX_ABY : load_abs(X, Y);  break;
-            // LDY - Load in Y register
             case LDY_IMM : load_imm(Y);     break;
             case LDY_ZPG : load_zp(Y);      break;
             case LDY_ZPX : load_zp(Y, X);   break;
             case LDY_ABS : load_abs(Y);     break;
             case LDY_ABX : load_abs(Y, X);  break;
 
+            case STA_ZPG : return -1; break;
+            case STA_ZPX : return -1; break;
+            case STA_ABS : return -1; break;
+            case STA_ABX : return -1; break;
+            case STA_ABY : return -1; break;
+            case STA_IDX : return -1; break;
+            case STA_IDY : return -1; break;
+            case STX_ZPG : return -1; break;
+            case STX_ZPY : return -1; break;
+            case STX_ABS : return -1; break;
+            case STY_ZPG : return -1; break;
+            case STY_ZPX : return -1; break;
+            case STY_ABS : return -1; break;
             // Invalid instruction
             default: { 
                 reset();

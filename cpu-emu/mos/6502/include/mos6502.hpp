@@ -57,26 +57,43 @@ namespace mos6502 {
     };
 
     enum Instructions : u8 {
-        LDA_IMM = 0xA9,     // Load immediate into A
-        LDA_ZPG = 0xA5,     // Load from zero-page addr into A
-        LDA_ZPX = 0xB5,     // Load from (zero-page addr + X) into A
-        LDA_ABS = 0xAD,     // Load from abs 16 bit addr into A
-        LDA_ABX = 0xBD,     // Load from abs 16 bit addr plus X into A
-        LDA_ABY = 0xB9,     // Load from abs 16 bit addr plus Y into A
-        LDA_IDX = 0xA1,     // Load from 16 bit addr starting at low byte (zero-page addr + X)
-        LDA_IDY = 0xB1,     // Load from 16 bit addr Y + (2-byte addr starting at operand)
-
+        // Load from mem into A
+        LDA_IMM = 0xA9,
+        LDA_ZPG = 0xA5,
+        LDA_ZPX = 0xB5,
+        LDA_ABS = 0xAD,
+        LDA_ABX = 0xBD,
+        LDA_ABY = 0xB9,
+        LDA_IDX = 0xA1,
+        LDA_IDY = 0xB1,
+        // Load from mem into X
         LDX_IMM = 0xA2,
         LDX_ZPG = 0xA6,
         LDX_ZPY = 0xB6,
         LDX_ABS = 0xAE,
         LDX_ABY = 0xBE,
-
+        // Load from mem into Y
         LDY_IMM = 0xA0,
         LDY_ZPG = 0xA4,
         LDY_ZPX = 0xB4,
         LDY_ABS = 0xAC,
         LDY_ABX = 0xBC,
+        // Store A to mem 
+        STA_ZPG = 0x85,
+        STA_ZPX = 0x95,
+        STA_ABS = 0x8D,
+        STA_ABX = 0x9D,
+        STA_ABY = 0x99,
+        STA_IDX = 0x81,
+        STA_IDY = 0x91,
+        // Store X to mem 
+        STX_ZPG = 0x86,
+        STX_ZPY = 0x96,
+        STX_ABS = 0x8E,
+        // Store Y to mem 
+        STY_ZPG = 0x84,
+        STY_ZPX = 0x94,
+        STY_ABS = 0x8C,
     };
 
     // Base number of cycles used per instruction, actual may be more on certain circumstances
