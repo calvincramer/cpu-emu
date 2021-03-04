@@ -39,7 +39,7 @@ u32 mos6502::CPU::execute(u32 numCycles) {
 
     // Will wrap adjusted zero page address around 8 bytes
     auto load_zp =  [this](u8& into, u8 offset = 0) { 
-        into = ram[(u8) (ram[PC+1] + offset)]; 
+        into = ram[(u8) (ram[PC+1] + offset)];
         set_ZN_flags(into);
     };
 
@@ -49,6 +49,16 @@ u32 mos6502::CPU::execute(u32 numCycles) {
         into = ram[addr_adj]; 
         numCycles -= (highByte(addr) != highByte(addr_adj));
         set_ZN_flags(into);
+    };
+
+    auto store_zp = [this](u8& regToStore, u8 offset = 0) {
+        ram[(u8) (ram[PC+1] + offset)] = regToStore;
+    };
+
+    auto store_abs = [this](u8& regToStore, u8 offset = 0) { 
+        u16 addr = B2W(ram[PC+1], ram[PC+2]);
+        u16 addr_adj = addr + offset;
+        ram[addr_adj] = regToStore; 
     };
 
     while (numCycles > 0) {
@@ -86,20 +96,29 @@ u32 mos6502::CPU::execute(u32 numCycles) {
             case LDY_ZPX : load_zp(Y, X);   break;
             case LDY_ABS : load_abs(Y);     break;
             case LDY_ABX : load_abs(Y, X);  break;
-
-            case STA_ZPG : return -1; break;
-            case STA_ZPX : return -1; break;
-            case STA_ABS : return -1; break;
-            case STA_ABX : return -1; break;
-            case STA_ABY : return -1; break;
-            case STA_IDX : return -1; break;
-            case STA_IDY : return -1; break;
-            case STX_ZPG : return -1; break;
-            case STX_ZPY : return -1; break;
-            case STX_ABS : return -1; break;
-            case STY_ZPG : return -1; break;
-            case STY_ZPX : return -1; break;
-            case STY_ABS : return -1; break;
+            case STA_ZPG : store_zp(A);     break;
+            case STA_ZPX : store_zp(A, X);  break;
+            case STA_ABS : store_abs(A);    break;
+            case STA_ABX : store_abs(A, X); break;
+            case STA_ABY : store_abs(A, Y); break;
+            case STA_IDX : {
+                u8 zpAddr = ram[PC+1];
+                zpAddr += X;
+                u16 realAddr = B2W(ram[zpAddr], ram[zpAddr+1]);
+                ram[realAddr] = A;
+            } break;
+            case STA_IDY : {
+                u8 zpAddr = ram[PC+1];
+                u16 addr = B2W(ram[zpAddr], ram[zpAddr+1]);
+                u16 addr_adj = addr + Y;
+                ram[addr_adj] = A;
+            } break;
+            case STX_ZPG : store_zp(X);     break;
+            case STX_ZPY : store_zp(X, Y);  break;
+            case STX_ABS : store_abs(X);    break;
+            case STY_ZPG : store_zp(Y);     break;
+            case STY_ZPX : store_zp(Y, X);  break;
+            case STY_ABS : store_abs(Y);    break;
             // Invalid instruction
             default: { 
                 reset();
