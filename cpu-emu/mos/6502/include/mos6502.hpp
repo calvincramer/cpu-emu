@@ -152,6 +152,8 @@ namespace mos6502 {
         TXA_IMP = 0x8A,
         TXS_IMP = 0x9A,
         TYA_IMP = 0x98,
+        // No op
+        NOP_IMP = 0xEA,
     };
 
     // Base number of cycles used per instruction, actual may be more on certain circumstances

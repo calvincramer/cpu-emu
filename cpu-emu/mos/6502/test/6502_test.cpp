@@ -33,6 +33,7 @@ class STA : public SetupCPU_F {};
 class STX : public SetupCPU_F {};
 class STY : public SetupCPU_F {};
 class TRANSFER : public SetupCPU_F {};
+class NOP : public SetupCPU_F {};
 
 TEST_F(Api, Reset) { cpu.reset(); }
 TEST_F(Api, Execute) { cpu.execute(0); }
@@ -367,6 +368,15 @@ TEST_F(TRANSFER, TSX) { transfer_common(cpu, TSX_IMP, cpu.S, cpu.X, true); }
 TEST_F(TRANSFER, TXA) { transfer_common(cpu, TXA_IMP, cpu.X, cpu.A, true); }
 TEST_F(TRANSFER, TXS) { transfer_common(cpu, TXS_IMP, cpu.X, cpu.S, false); }
 TEST_F(TRANSFER, TYA) { transfer_common(cpu, TYA_IMP, cpu.Y, cpu.A, true); }
+
+
+// No op
+TEST_F(NOP, MultipleNoOp) { 
+    cpu[RESET_LOC] = NOP_IMP;
+    cpu[RESET_LOC + 1] = NOP_IMP;
+    ASSERT_TRUE(cpu.execute(4) == 4);
+    ASSERT_TRUE(cpu.PC == RESET_LOC + 2);
+}
 
 
 int main(int argc, char **argv) {

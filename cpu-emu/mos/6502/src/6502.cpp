@@ -74,6 +74,7 @@ u32 mos6502::CPU::execute(u32 numCycles) {
             case TXA_IMP : transfer(X, A, true);                    break;
             case TXS_IMP : transfer(X, S, false);                   break;
             case TYA_IMP : transfer(Y, A, true);                    break;
+            case NOP_IMP : /* do nothing */                         break;
             // Invalid instruction
             default: {
                 printf("BAD INSTRUCTION!!!!!!!!!!!!!!\n");

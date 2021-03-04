@@ -182,7 +182,7 @@ PLP ....    pull processor status (SR)
 BRK ....    break / interrupt
 RTI ....    return from interrupt
 
-NOP ....    no operation
+NOP     no operation
 ```
 
 ## Assembler syntax
