@@ -34,6 +34,8 @@ class STX : public SetupCPU_F {};
 class STY : public SetupCPU_F {};
 class TRANSFER : public SetupCPU_F {};
 class NOP : public SetupCPU_F {};
+class CLEAR_FLAGS : public SetupCPU_F {};
+class SET_FLAGS : public SetupCPU_F {};
 
 TEST_F(Api, Reset) { cpu.reset(); }
 TEST_F(Api, Execute) { cpu.execute(0); }
@@ -377,6 +379,65 @@ TEST_F(NOP, MultipleNoOp) {
     ASSERT_TRUE(cpu.execute(4) == 4);
     ASSERT_TRUE(cpu.PC == RESET_LOC + 2);
 }
+
+
+// Clear flags
+TEST_F(CLEAR_FLAGS, ClearDifferentFlags) { 
+    // Carry
+    cpu[RESET_LOC] = CLC_IMP;
+    cpu.SR.C = 1;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.SR.C == 0);
+
+    // Decimal
+    cpu.reset();
+    cpu[RESET_LOC] = CLD_IMP;
+    cpu.SR.D = 1;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.SR.D == 0);
+
+    // Interrupt Disable
+    cpu.reset();
+    cpu[RESET_LOC] = CLI_IMP;
+    cpu.SR.I = 1;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.SR.I == 0);
+
+    // Overflow
+    cpu.reset();
+    cpu[RESET_LOC] = CLV_IMP;
+    cpu.SR.V = 1;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.SR.V == 0);
+}
+
+
+// Set flags
+TEST_F(SET_FLAGS, SetDifferentFlags) { 
+    // Carry
+    cpu[RESET_LOC] = SEC_IMP;
+    cpu.SR.C = 0;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.SR.C == 1);
+
+    // Decimal
+    cpu.reset();
+    cpu[RESET_LOC] = SED_IMP;
+    cpu.SR.D = 0;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.SR.D == 1);
+
+    // Interrupt Disable
+    cpu.reset();
+    cpu[RESET_LOC] = SEI_IMP;
+    cpu.SR.I = 0;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.SR.I == 1);
+}
+
+
+// Increment / decrement
+// TODO
 
 
 int main(int argc, char **argv) {

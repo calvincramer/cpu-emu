@@ -107,23 +107,23 @@ Notes:
 ```sh
 # Arithmetic
 ADC ....    add with carry
-AND ....    and (with accumulator)
-ASL ....    arithmetic shift left
-DEC ....    decrement
-DEX ....    decrement X
-DEY ....    decrement Y
+SBC ....    subtract with carry
 INC ....    increment
 INX ....    increment X
 INY ....    increment Y
-SBC ....    subtract with carry
+DEC ....    decrement
+DEX ....    decrement X
+DEY ....    decrement Y
 
 # Bitwise arithmetic
+AND ....    and (with accumulator)
 EOR ....    exclusive or (with accumulator)
 ORA ....    or with accumulator
 ROL ....    rotate left
 ROR ....    rotate right
 
 # Shifting
+ASL ....    arithmetic shift left
 LSR ....    logical shift right
 
 # Comparison 
@@ -146,10 +146,15 @@ JSR ....    jump subroutine
 RTS ....    return from subroutine
 
 # Clear flag bits
-CLC ....    clear carry
-CLD ....    clear decimal
-CLI ....    clear interrupt disable
-CLV ....    clear overflow
+CLC     clear carry
+CLD     clear decimal
+CLI     clear interrupt disable
+CLV     clear overflow
+
+# Set flags
+SEC     set carry
+SED     set decimal
+SEI     set interrupt disable
 
 # Load / Store
 LDA     load accumulator
@@ -158,11 +163,6 @@ LDY     load Y
 STA     store accumulator
 STX     store X
 STY     store Y
-
-# Set flags
-SEC ....    set carry
-SED ....    set decimal
-SEI ....    set interrupt disable
 
 # Transfer between registers
 TAX     transfer accumulator to X

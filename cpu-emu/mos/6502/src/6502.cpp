@@ -75,6 +75,25 @@ u32 mos6502::CPU::execute(u32 numCycles) {
             case TXS_IMP : transfer(X, S, false);                   break;
             case TYA_IMP : transfer(Y, A, true);                    break;
             case NOP_IMP : /* do nothing */                         break;
+            case CLC_IMP : SR.C = 0;                                break;
+            case CLD_IMP : SR.D = 0;                                break;
+            case CLI_IMP : SR.I = 0;                                break;
+            case CLV_IMP : SR.V = 0;                                break;
+            case SEC_IMP : SR.C = 1;                                break;
+            case SED_IMP : SR.D = 1;                                break;
+            case SEI_IMP : SR.I = 1;                                break;
+            case INC_ZPG : inc_dec_zp(1);                           break;
+            case INC_ZPX : inc_dec_zp(1, X);                        break;
+            case INC_ABS : inc_dec_abs(1);                          break;
+            case INC_ABX : inc_dec_abs(1, X);                       break;
+            case INX_IMP : add_to_reg(X, 1);                        break;
+            case INY_IMP : add_to_reg(Y, 1);                        break;
+            case DEC_ZPG : inc_dec_zp(-1);                          break;
+            case DEC_ZPX : inc_dec_zp(-1, X);                       break;
+            case DEC_ABS : inc_dec_abs(-1);                         break;
+            case DEC_ABX : inc_dec_abs(-1, X);                      break;
+            case DEX_IMP : add_to_reg(X, -1);                       break;
+            case DEY_IMP : add_to_reg(Y, -1);                       break;
             // Invalid instruction
             default: {
                 printf("BAD INSTRUCTION!!!!!!!!!!!!!!\n");

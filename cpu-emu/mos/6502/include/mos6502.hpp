@@ -8,6 +8,8 @@ typedef std::uint8_t    u8;
 typedef std::uint16_t   u16;
 typedef std::uint32_t   u32;
 
+typedef std::int8_t     s8;
+
 // Bytes to Wyde
 inline u16 B2W(u8 low, u8 high) { return (high << 8) + low; }
 
@@ -21,7 +23,7 @@ namespace mos6502 {
     struct reg_flags {
         u1 C : 1;   // carry
         u1 Z : 1;   // zero
-        u1 I : 1;   // interrupt
+        u1 I : 1;   // interrupt disable
         u1 D : 1;   // decimal
         u1 B : 1;   // break
         u1 _ : 1;   // not used / ignored
@@ -33,9 +35,9 @@ namespace mos6502 {
      private:
         u8 getCurrentInstr() { return this->ram[this->PC]; }
         
-        inline void set_ZN_flags(u8& reg) {
-            SR.Z = (reg == 0);
-            SR.N = ((reg & 0x80) != 0);
+        inline void set_ZN_flags(u8 val) {
+            SR.Z = (val == 0);
+            SR.N = ((val & 0x80) != 0);
         }
 
         // Get the address / immediate from the current instruction
@@ -85,6 +87,23 @@ namespace mos6502 {
         inline void transfer(u8& from, u8& to, bool updateFlags) {
             to = from;
             if (updateFlags) { set_ZN_flags(to); }
+        }
+
+        inline void inc_dec_zp(s8 val, u8 offset = 0) {
+            u8 addr = get_zp_addr(offset);
+            ram[addr] += val;
+            set_ZN_flags(ram[addr]);
+        }
+
+        inline void inc_dec_abs(s8 val, u8 offset = 0) {
+            u16 addr = get_abs_addr(offset);
+            ram[addr] += val;
+            set_ZN_flags(ram[addr]);
+        }
+
+        inline void add_to_reg(u8& reg, s8 val) {
+            reg += val;
+            set_ZN_flags(reg);
         }
 
      public:
@@ -154,6 +173,30 @@ namespace mos6502 {
         TYA_IMP = 0x98,
         // No op
         NOP_IMP = 0xEA,
+        // Clear flags
+        CLC_IMP = 0x18,
+        CLD_IMP = 0xD8,
+        CLI_IMP = 0x58,
+        CLV_IMP = 0xB8,
+        // Set flags
+        SEC_IMP = 0x38,
+        SED_IMP = 0xF8,
+        SEI_IMP = 0x78,
+        // Increment
+        INC_ZPG = 0xE6,
+        INC_ZPX = 0xF6,
+        INC_ABS = 0xEE,
+        INC_ABX = 0xFE,
+        INX_IMP = 0xE8,
+        INY_IMP = 0xC8,
+        // Decrement
+        DEC_ZPG = 0xC6,
+        DEC_ZPX = 0xD6,
+        DEC_ABS = 0xCE,
+        DEC_ABX = 0xDE,
+        DEX_IMP = 0xCA,
+        DEY_IMP = 0x88,
+
     };
 
     // Base number of cycles used per instruction, actual may be more on certain circumstances
