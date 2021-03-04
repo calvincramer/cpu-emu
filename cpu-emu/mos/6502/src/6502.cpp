@@ -30,37 +30,6 @@ u32 mos6502::CPU::execute(u32 numCycles) {
     u32 numCyclesSave = numCycles;
     u8 currentInstr;
 
-    // Helper functions
-
-    auto load_imm = [this](u8& into) { 
-        into = ram[PC+1]; 
-        set_ZN_flags(into);
-    };
-
-    // Will wrap adjusted zero page address around 8 bytes
-    auto load_zp =  [this](u8& into, u8 offset = 0) { 
-        into = ram[(u8) (ram[PC+1] + offset)];
-        set_ZN_flags(into);
-    };
-
-    auto load_abs = [this, &numCycles](u8& into, u8 offset = 0) { 
-        u16 addr = B2W(ram[PC+1], ram[PC+2]);
-        u16 addr_adj = addr + offset;
-        into = ram[addr_adj]; 
-        numCycles -= (highByte(addr) != highByte(addr_adj));
-        set_ZN_flags(into);
-    };
-
-    auto store_zp = [this](u8& regToStore, u8 offset = 0) {
-        ram[(u8) (ram[PC+1] + offset)] = regToStore;
-    };
-
-    auto store_abs = [this](u8& regToStore, u8 offset = 0) { 
-        u16 addr = B2W(ram[PC+1], ram[PC+2]);
-        u16 addr_adj = addr + offset;
-        ram[addr_adj] = regToStore; 
-    };
-
     while (numCycles > 0) {
         currentInstr = getCurrentInstr();
         // Execute instruction
@@ -68,9 +37,9 @@ u32 mos6502::CPU::execute(u32 numCycles) {
             case LDA_IMM: load_imm(A);      break;
             case LDA_ZPG: load_zp(A);       break;
             case LDA_ZPX: load_zp(A, X);    break;
-            case LDA_ABS: load_abs(A);      break;
-            case LDA_ABX: load_abs(A, X);   break;
-            case LDA_ABY: load_abs (A, Y);  break;
+            case LDA_ABS: load_abs(A, numCycles);      break;
+            case LDA_ABX: load_abs(A, numCycles, X);   break;
+            case LDA_ABY: load_abs(A, numCycles, Y);  break;
             case LDA_IDX: {
                 u8 zpAddr = ram[PC+1];
                 zpAddr += X;
@@ -89,13 +58,13 @@ u32 mos6502::CPU::execute(u32 numCycles) {
             case LDX_IMM : load_imm(X);     break;
             case LDX_ZPG : load_zp(X);      break;
             case LDX_ZPY : load_zp(X, Y);   break;
-            case LDX_ABS : load_abs(X);     break;
-            case LDX_ABY : load_abs(X, Y);  break;
+            case LDX_ABS : load_abs(X, numCycles);     break;
+            case LDX_ABY : load_abs(X, numCycles, Y);  break;
             case LDY_IMM : load_imm(Y);     break;
             case LDY_ZPG : load_zp(Y);      break;
             case LDY_ZPX : load_zp(Y, X);   break;
-            case LDY_ABS : load_abs(Y);     break;
-            case LDY_ABX : load_abs(Y, X);  break;
+            case LDY_ABS : load_abs(Y, numCycles);     break;
+            case LDY_ABX : load_abs(Y, numCycles, X);  break;
             case STA_ZPG : store_zp(A);     break;
             case STA_ZPX : store_zp(A, X);  break;
             case STA_ABS : store_abs(A);    break;

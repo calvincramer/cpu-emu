@@ -32,10 +32,42 @@ namespace mos6502 {
     class CPU {
      private:
         u8 getCurrentInstr() { return this->ram[this->PC]; }
+        
         inline void set_ZN_flags(u8& reg) {
             SR.Z = (reg == 0);
             SR.N = ((reg & 0x80) != 0);
         }
+
+        // Get the address / immediate from the current instruction
+        inline u8 get_imm()                 { return ram[PC + 1]; }
+        inline u8 get_zp_addr(u8 offset)    { return (u8) (ram[PC+1] + offset); }
+        inline u16 get_abs_addr(u8 offset)  { return B2W(ram[PC+1], ram[PC+2]) + offset; }
+
+        inline void load_imm(u8& into) { 
+            into = get_imm();
+            set_ZN_flags(into);
+        }
+
+        inline void load_zp(u8& into, u8 offset = 0) { 
+            into = ram[get_zp_addr(offset)];
+            set_ZN_flags(into);
+        }
+
+        inline void load_abs(u8& into, u32& numCycles, u8 offset = 0) { 
+            u16 addr = get_abs_addr(offset);
+            into = ram[addr]; 
+            numCycles -= (highByte(addr) != highByte(addr - offset));
+            set_ZN_flags(into);
+        }
+
+        inline void store_zp(u8& regToStore, u8 offset = 0) {
+            ram[get_zp_addr(offset)] = regToStore;
+        }
+
+        inline void store_abs(u8& regToStore, u8 offset = 0) { 
+            ram[get_abs_addr(offset)] = regToStore; 
+        }
+
      public:
         // Constants
         static const u32 MEM_MAX = 1 << 16;
