@@ -34,60 +34,37 @@ u32 mos6502::CPU::execute(u32 numCycles) {
         currentInstr = getCurrentInstr();
         // Execute instruction
         switch (currentInstr) {
-            case LDA_IMM: load_imm(A);      break;
-            case LDA_ZPG: load_zp(A);       break;
-            case LDA_ZPX: load_zp(A, X);    break;
-            case LDA_ABS: load_abs(A, numCycles);      break;
-            case LDA_ABX: load_abs(A, numCycles, X);   break;
-            case LDA_ABY: load_abs(A, numCycles, Y);  break;
-            case LDA_IDX: {
-                u8 zpAddr = ram[PC+1];
-                zpAddr += X;
-                u16 realAddr = B2W(ram[zpAddr], ram[zpAddr+1]);
-                A = ram[realAddr];
-                set_ZN_flags(A);
-            } break;
-            case LDA_IDY: {
-                u8 zpAddr = ram[PC+1];
-                u16 addr = B2W(ram[zpAddr], ram[zpAddr+1]);
-                u16 addr_adj = addr + Y;
-                A = ram[addr_adj];
-                numCycles -= (highByte(addr) != highByte(addr_adj));
-                set_ZN_flags(A);
-            } break;
-            case LDX_IMM : load_imm(X);     break;
-            case LDX_ZPG : load_zp(X);      break;
-            case LDX_ZPY : load_zp(X, Y);   break;
-            case LDX_ABS : load_abs(X, numCycles);     break;
-            case LDX_ABY : load_abs(X, numCycles, Y);  break;
-            case LDY_IMM : load_imm(Y);     break;
-            case LDY_ZPG : load_zp(Y);      break;
-            case LDY_ZPX : load_zp(Y, X);   break;
-            case LDY_ABS : load_abs(Y, numCycles);     break;
-            case LDY_ABX : load_abs(Y, numCycles, X);  break;
-            case STA_ZPG : store_zp(A);     break;
-            case STA_ZPX : store_zp(A, X);  break;
-            case STA_ABS : store_abs(A);    break;
-            case STA_ABX : store_abs(A, X); break;
-            case STA_ABY : store_abs(A, Y); break;
-            case STA_IDX : {
-                u8 zpAddr = ram[PC+1];
-                zpAddr += X;
-                u16 realAddr = B2W(ram[zpAddr], ram[zpAddr+1]);
-                ram[realAddr] = A;
-            } break;
-            case STA_IDY : {
-                u8 zpAddr = ram[PC+1];
-                u16 addr = B2W(ram[zpAddr], ram[zpAddr+1]);
-                u16 addr_adj = addr + Y;
-                ram[addr_adj] = A;
-            } break;
-            case STX_ZPG : store_zp(X);     break;
-            case STX_ZPY : store_zp(X, Y);  break;
-            case STX_ABS : store_abs(X);    break;
-            case STY_ZPG : store_zp(Y);     break;
-            case STY_ZPX : store_zp(Y, X);  break;
-            case STY_ABS : store_abs(Y);    break;
+            case LDA_IMM : load_imm(A);                             break;
+            case LDA_ZPG : load_zp(A);                              break;
+            case LDA_ZPX : load_zp(A, X);                           break;
+            case LDA_ABS : load_abs(A, numCycles);                  break;
+            case LDA_ABX : load_abs(A, numCycles, X);               break;
+            case LDA_ABY : load_abs(A, numCycles, Y);               break;
+            case LDA_IDX : load_idx();                              break;
+            case LDA_IDY : load_idy(numCycles);                     break;
+            case LDX_IMM : load_imm(X);                             break;
+            case LDX_ZPG : load_zp(X);                              break;
+            case LDX_ZPY : load_zp(X, Y);                           break;
+            case LDX_ABS : load_abs(X, numCycles);                  break;
+            case LDX_ABY : load_abs(X, numCycles, Y);               break;
+            case LDY_IMM : load_imm(Y);                             break;
+            case LDY_ZPG : load_zp(Y);                              break;
+            case LDY_ZPX : load_zp(Y, X);                           break;
+            case LDY_ABS : load_abs(Y, numCycles);                  break;
+            case LDY_ABX : load_abs(Y, numCycles, X);               break;
+            case STA_ZPG : store_zp(A);                             break;
+            case STA_ZPX : store_zp(A, X);                          break;
+            case STA_ABS : store_abs(A);                            break;
+            case STA_ABX : store_abs(A, X);                         break;
+            case STA_ABY : store_abs(A, Y);                         break;
+            case STA_IDX : ram[get_indexed_indirect_addr()] = A;    break;
+            case STA_IDY : ram[get_indirect_indexed_addr()] = A;    break;
+            case STX_ZPG : store_zp(X);                             break;
+            case STX_ZPY : store_zp(X, Y);                          break;
+            case STX_ABS : store_abs(X);                            break;
+            case STY_ZPG : store_zp(Y);                             break;
+            case STY_ZPX : store_zp(Y, X);                          break;
+            case STY_ABS : store_abs(Y);                            break;
             // Invalid instruction
             default: { 
                 reset();

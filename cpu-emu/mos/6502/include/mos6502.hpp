@@ -39,9 +39,11 @@ namespace mos6502 {
         }
 
         // Get the address / immediate from the current instruction
-        inline u8 get_imm()                 { return ram[PC + 1]; }
-        inline u8 get_zp_addr(u8 offset)    { return (u8) (ram[PC+1] + offset); }
-        inline u16 get_abs_addr(u8 offset)  { return B2W(ram[PC+1], ram[PC+2]) + offset; }
+        inline u8 get_imm()                    { return ram[PC + 1]; }
+        inline u8 get_zp_addr(u8 offset)       { return (u8) (ram[PC+1] + offset); }
+        inline u16 get_abs_addr(u8 offset)     { return B2W(ram[PC+1], ram[PC+2]) + offset; }
+        inline u16 get_indexed_indirect_addr() { return B2W(ram[(u8) (ram[PC+1] + X)], ram[(u8) (ram[PC+1] + X + 1)]); }
+        inline u16 get_indirect_indexed_addr() { return Y + B2W(ram[ram[PC+1]], ram[(u8) (ram[PC+1] + 1)]); }
 
         inline void load_imm(u8& into) { 
             into = get_imm();
@@ -58,6 +60,18 @@ namespace mos6502 {
             into = ram[addr]; 
             numCycles -= (highByte(addr) != highByte(addr - offset));
             set_ZN_flags(into);
+        }
+
+        inline void load_idx() {
+            A = ram[get_indexed_indirect_addr()];
+            set_ZN_flags(A);
+        }
+
+        inline void load_idy(u32& numCycles) {
+            u16 addr = get_indirect_indexed_addr();
+            A = ram[addr];
+            numCycles -= (highByte(addr) != highByte(addr - Y));
+            set_ZN_flags(A);
         }
 
         inline void store_zp(u8& regToStore, u8 offset = 0) {
