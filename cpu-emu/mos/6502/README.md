@@ -155,9 +155,9 @@ CLV ....    clear overflow
 LDA     load accumulator
 LDX     load X
 LDY     load Y
-STA ....    store accumulator
-STX ....    store X
-STY ....    store Y
+STA     store accumulator
+STX     store X
+STY     store Y
 
 # Set flags
 SEC ....    set carry
@@ -165,12 +165,12 @@ SED ....    set decimal
 SEI ....    set interrupt disable
 
 # Transfer between registers
-TAX ....    transfer accumulator to X
-TAY ....    transfer accumulator to Y
-TSX ....    transfer stack pointer to X
-TXA ....    transfer X to accumulator
-TXS ....    transfer X to stack pointer
-TYA ....    transfer Y to accumulator
+TAX     transfer accumulator to X
+TAY     transfer accumulator to Y
+TSX     transfer stack pointer to X
+TXA     transfer X to accumulator
+TXS     transfer X to stack pointer
+TYA     transfer Y to accumulator
 
 # Push / pop stack
 PHA ....    push accumulator

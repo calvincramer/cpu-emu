@@ -82,6 +82,11 @@ namespace mos6502 {
             ram[get_abs_addr(offset)] = regToStore; 
         }
 
+        inline void transfer(u8& from, u8& to, bool updateFlags) {
+            to = from;
+            if (updateFlags) { set_ZN_flags(to); }
+        }
+
      public:
         // Constants
         static const u32 MEM_MAX = 1 << 16;
@@ -94,7 +99,7 @@ namespace mos6502 {
         u8  X;          // index register
         u8  Y;          // index register
         reg_flags SR;   // status register (flags) (8 bits)
-        u8  SP;          // stack pointer (aka 'S')
+        u8  S;          // stack pointer (aka 'SP')
 
         // Methods
         void reset();
@@ -140,6 +145,13 @@ namespace mos6502 {
         STY_ZPG = 0x84,
         STY_ZPX = 0x94,
         STY_ABS = 0x8C,
+        // Copy one register to another
+        TAX_IMP = 0xAA,
+        TAY_IMP = 0xA8,
+        TSX_IMP = 0xBA,
+        TXA_IMP = 0x8A,
+        TXS_IMP = 0x9A,
+        TYA_IMP = 0x98,
     };
 
     // Base number of cycles used per instruction, actual may be more on certain circumstances

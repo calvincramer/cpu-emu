@@ -2,7 +2,10 @@
 Emulate the MOS 6502 cpu 
 */
 
+#include <cstdio>
+
 #include "mos6502.hpp"
+
 
 void mos6502::CPU::reset() {
     // Clear RAM
@@ -21,7 +24,7 @@ void mos6502::CPU::reset() {
     SR._ = 1;   // Apparantly always high
     SR.V = 0;
     SR.N = 0;
-    SP = 0;
+    S = 0;
 }
 
 // Returns -1 on illegal instruction
@@ -65,8 +68,15 @@ u32 mos6502::CPU::execute(u32 numCycles) {
             case STY_ZPG : store_zp(Y);                             break;
             case STY_ZPX : store_zp(Y, X);                          break;
             case STY_ABS : store_abs(Y);                            break;
+            case TAX_IMP : transfer(A, X, true);                    break;
+            case TAY_IMP : transfer(A, Y, true);                    break;
+            case TSX_IMP : transfer(S, X, true);                    break;
+            case TXA_IMP : transfer(X, A, true);                    break;
+            case TXS_IMP : transfer(X, S, false);                   break;
+            case TYA_IMP : transfer(Y, A, true);                    break;
             // Invalid instruction
-            default: { 
+            default: {
+                printf("BAD INSTRUCTION!!!!!!!!!!!!!!\n");
                 reset();
                 return -1;
             }

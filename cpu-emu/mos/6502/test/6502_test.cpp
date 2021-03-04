@@ -3,8 +3,6 @@
 
 using namespace mos6502;
 
-// #define UNCHANGED(x) cpu.#x == cpuOrig.#x
-
 // Values for flags
 #define F_ZERO 1
 #define F_NON_ZERO 0
@@ -34,6 +32,7 @@ class LDY : public SetupCPU_F {};
 class STA : public SetupCPU_F {};
 class STX : public SetupCPU_F {};
 class STY : public SetupCPU_F {};
+class TRANSFER : public SetupCPU_F {};
 
 TEST_F(Api, Reset) { cpu.reset(); }
 TEST_F(Api, Execute) { cpu.execute(0); }
@@ -325,6 +324,49 @@ TEST_F(STX, Absolute)   { store_common_absolute (cpu, STX_ABS, cpu.X, 4); }
 TEST_F(STY, ZeroPage)   { store_common_zero_page(cpu, STY_ZPG, cpu.Y, 3); }
 TEST_F(STY, ZeroPageX)  { store_common_zero_page(cpu, STY_ZPX, cpu.Y, 4, &cpu.X, 0xFF); }
 TEST_F(STY, Absolute)   { store_common_absolute (cpu, STY_ABS, cpu.Y, 4); }
+
+// Transfer
+void transfer_common(CPU& cpu, u8 inst, u8& fromReg, u8& toReg, bool check_flags) {
+    // Positive
+    cpu[RESET_LOC] = inst;
+    fromReg = 0x10;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(toReg == 0x10);
+    if (check_flags) {
+        ASSERT_TRUE(cpu.SR.Z == F_NON_ZERO);
+        ASSERT_TRUE(cpu.SR.N == F_NON_NEG);
+    }
+
+    // Zero
+    cpu.reset();
+    cpu[RESET_LOC] = inst;
+    fromReg = 0x0;
+    toReg = 0x5;     // Not zero, so we see zero is actual put in
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(toReg == 0x0);
+    if (check_flags) {
+        ASSERT_TRUE(cpu.SR.Z == F_ZERO);
+        ASSERT_TRUE(cpu.SR.N == F_NON_NEG);
+    }
+
+    // Negative
+    cpu.reset();
+    cpu[RESET_LOC] = inst;
+    fromReg = 0xFF;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(toReg == 0xFF);
+    if (check_flags) {
+        ASSERT_TRUE(cpu.SR.Z == F_NON_ZERO);
+        ASSERT_TRUE(cpu.SR.N == F_NEG);
+    }
+}
+
+TEST_F(TRANSFER, TAX) { transfer_common(cpu, TAX_IMP, cpu.A, cpu.X, true); }
+TEST_F(TRANSFER, TAY) { transfer_common(cpu, TAY_IMP, cpu.A, cpu.Y, true); }
+TEST_F(TRANSFER, TSX) { transfer_common(cpu, TSX_IMP, cpu.S, cpu.X, true); }
+TEST_F(TRANSFER, TXA) { transfer_common(cpu, TXA_IMP, cpu.X, cpu.A, true); }
+TEST_F(TRANSFER, TXS) { transfer_common(cpu, TXS_IMP, cpu.X, cpu.S, false); }
+TEST_F(TRANSFER, TYA) { transfer_common(cpu, TYA_IMP, cpu.Y, cpu.A, true); }
 
 
 int main(int argc, char **argv) {
