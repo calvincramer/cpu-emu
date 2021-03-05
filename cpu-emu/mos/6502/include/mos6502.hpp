@@ -106,6 +106,35 @@ namespace mos6502 {
             set_ZN_flags(reg);
         }
 
+        inline void and_imm() {
+            A &= get_imm();
+            set_ZN_flags(A);
+        }
+
+        inline void and_zp(u8 offset = 0) {
+            A &= ram[get_zp_addr(offset)];
+            set_ZN_flags(A);
+        }
+
+        inline void and_abs(u32& numCycles, u8 offset = 0) {
+            u16 addr = get_abs_addr(offset);
+            A &= ram[addr];
+            numCycles -= (highByte(addr) != highByte(addr - offset));
+            set_ZN_flags(A);
+        }
+
+        inline void and_idx() {
+            A &= ram[get_indexed_indirect_addr()];
+            set_ZN_flags(A);
+        }
+
+        inline void and_idy(u32& numCycles) {
+            u16 addr = get_indirect_indexed_addr();
+            A &= ram[addr];
+            numCycles -= (highByte(addr) != highByte(addr - Y));
+            set_ZN_flags(A);
+        }
+
      public:
         // Constants
         static const u32 MEM_MAX = 1 << 16;
@@ -196,7 +225,15 @@ namespace mos6502 {
         DEC_ABX = 0xDE,
         DEX_IMP = 0xCA,
         DEY_IMP = 0x88,
-
+        // And bitwise
+        AND_IMM = 0x29,
+        AND_ZPG = 0x25,
+        AND_ZPX = 0x35,
+        AND_ABS = 0x2D,
+        AND_ABX = 0x3D,
+        AND_ABY = 0x39,
+        AND_IDX = 0x21,
+        AND_IDY = 0x31,
     };
 
     // Base number of cycles used per instruction, actual may be more on certain circumstances

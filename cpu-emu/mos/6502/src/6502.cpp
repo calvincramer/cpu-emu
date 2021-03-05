@@ -29,8 +29,7 @@ void mos6502::CPU::reset() {
 
 // Returns -1 on illegal instruction
 u32 mos6502::CPU::execute(u32 numCycles) {
-    // TODO make sure correct number of bytes for each instructions stepped over. Instructions have different sizes.
-    u32 numCyclesSave = numCycles;
+    u32 numCyclesSave = numCycles;  // Original number of cycles to execute
     u8 currentInstr;
 
     while (numCycles > 0) {
@@ -94,6 +93,14 @@ u32 mos6502::CPU::execute(u32 numCycles) {
             case DEC_ABX : inc_dec_abs(-1, X);                      break;
             case DEX_IMP : add_to_reg(X, -1);                       break;
             case DEY_IMP : add_to_reg(Y, -1);                       break;
+            case AND_IMM : and_imm();                               break;
+            case AND_ZPG : and_zp();                                break;
+            case AND_ZPX : and_zp(X);                               break;
+            case AND_ABS : and_abs(numCycles);                      break;
+            case AND_ABX : and_abs(numCycles, X);                   break;
+            case AND_ABY : and_abs(numCycles, Y);                   break;
+            case AND_IDX : and_idx();                               break;
+            case AND_IDY : and_idy(numCycles);                      break;
             // Invalid instruction
             default: {
                 printf("BAD INSTRUCTION!!!!!!!!!!!!!!\n");
@@ -106,13 +113,3 @@ u32 mos6502::CPU::execute(u32 numCycles) {
     }
     return numCyclesSave - numCycles;
 }
-
-
-#if 0
-int main() {
-    using namespace mos6502;
-    CPU cpu;
-    printf("Hello world\n");
-    return 0;
-}
-#endif 

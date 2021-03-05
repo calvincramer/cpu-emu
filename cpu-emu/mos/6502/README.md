@@ -105,6 +105,33 @@ Notes:
 
 ## Instructions
 ```sh
+# Clear flag bits
+CLC     clear carry
+CLD     clear decimal
+CLI     clear interrupt disable
+CLV     clear overflow
+
+# Set flags
+SEC     set carry
+SED     set decimal
+SEI     set interrupt disable
+
+# Load / Store
+LDA     load accumulator
+LDX     load X
+LDY     load Y
+STA     store accumulator
+STX     store X
+STY     store Y
+
+# Transfer between registers
+TAX     transfer accumulator to X
+TAY     transfer accumulator to Y
+TSX     transfer stack pointer to X
+TXA     transfer X to accumulator
+TXS     transfer X to stack pointer
+TYA     transfer Y to accumulator
+
 # Arithmetic
 ADC ....    add with carry
 SBC ....    subtract with carry
@@ -116,7 +143,7 @@ DEX     decrement X
 DEY     decrement Y
 
 # Bitwise arithmetic
-AND ....    and (with accumulator)
+AND     and (with accumulator)
 EOR ....    exclusive or (with accumulator)
 ORA ....    or with accumulator
 ROL ....    rotate left
@@ -145,32 +172,7 @@ JMP ....    jump
 JSR ....    jump subroutine
 RTS ....    return from subroutine
 
-# Clear flag bits
-CLC     clear carry
-CLD     clear decimal
-CLI     clear interrupt disable
-CLV     clear overflow
 
-# Set flags
-SEC     set carry
-SED     set decimal
-SEI     set interrupt disable
-
-# Load / Store
-LDA     load accumulator
-LDX     load X
-LDY     load Y
-STA     store accumulator
-STX     store X
-STY     store Y
-
-# Transfer between registers
-TAX     transfer accumulator to X
-TAY     transfer accumulator to Y
-TSX     transfer stack pointer to X
-TXA     transfer X to accumulator
-TXS     transfer X to stack pointer
-TYA     transfer Y to accumulator
 
 # Push / pop stack
 PHA ....    push accumulator
