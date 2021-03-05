@@ -36,6 +36,7 @@ class TRANSFER : public SetupCPU_F {};
 class NOP : public SetupCPU_F {};
 class CLEAR_FLAGS : public SetupCPU_F {};
 class SET_FLAGS : public SetupCPU_F {};
+class INC_DEC : public SetupCPU_F {};
 
 TEST_F(Api, Reset) { cpu.reset(); }
 TEST_F(Api, Execute) { cpu.execute(0); }
@@ -437,7 +438,127 @@ TEST_F(SET_FLAGS, SetDifferentFlags) {
 
 
 // Increment / decrement
-// TODO
+void inc_dec_implied(CPU& cpu, u8 inst, u8& incDecReg, u8 startingVal, s8 offset, u1 zeroFlagExpect, u1 negativeFlagExpect) {
+    cpu[RESET_LOC] = inst;
+    incDecReg = startingVal;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(incDecReg == (u8) (startingVal + offset));
+    ASSERT_TRUE(cpu.SR.Z == zeroFlagExpect);
+    ASSERT_TRUE(cpu.SR.N == negativeFlagExpect);
+    cpu.reset();
+}
+
+// Zero and Negative flags not tested for INC and DEC, but covered under INX, INY, DEX, DEY
+TEST_F(INC_DEC, INC) {
+    // Zero page
+    cpu[RESET_LOC] = INC_ZPG;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu[0x12] = 0x41;
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu[0x12] == 0x42);
+
+    // Zero page x
+    cpu.reset();
+    cpu[RESET_LOC] = INC_ZPX;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu.X = 0x10;
+    cpu[0x22] = 0x41;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu[0x22] == 0x42);
+
+    // Zero page x wrap
+    cpu.reset();
+    cpu[RESET_LOC] = INC_ZPX;
+    cpu[RESET_LOC + 1] = 0xF5;
+    cpu.X = 0x10;
+    cpu[0x05] = 0x41;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu[0x05] == 0x42);
+
+    // Absolute
+    cpu.reset();
+    cpu[RESET_LOC] = INC_ABS;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu[0x1234] = 0x41;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu[0x1234] == 0x42);
+
+    // Absolute x
+    cpu.reset();
+    cpu[RESET_LOC] = INC_ABX;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu.X = 0x6;
+    cpu[0x123A] = 0x41;
+    ASSERT_TRUE(cpu.execute(7) == 7);
+    ASSERT_TRUE(cpu[0x123A] == 0x42);
+}
+TEST_F(INC_DEC, INX) {
+    inc_dec_implied(cpu, INX_IMP, cpu.X, 0xFF, 1, F_ZERO, F_NON_NEG);       // Zero
+    inc_dec_implied(cpu, INX_IMP, cpu.X, 0x41, 1, F_NON_ZERO, F_NON_NEG);   // Positive
+    inc_dec_implied(cpu, INX_IMP, cpu.X, 0xF0, 1, F_NON_ZERO, F_NEG);       // Negative
+}
+TEST_F(INC_DEC, INY) {
+    inc_dec_implied(cpu, INY_IMP, cpu.Y, 0xFF, 1, F_ZERO, F_NON_NEG);       // Zero
+    inc_dec_implied(cpu, INY_IMP, cpu.Y, 0x41, 1, F_NON_ZERO, F_NON_NEG);   // Positive
+    inc_dec_implied(cpu, INY_IMP, cpu.Y, 0xF0, 1, F_NON_ZERO, F_NEG);       // Negative
+}
+TEST_F(INC_DEC, DEC) {
+    // Zero page
+    cpu[RESET_LOC] = DEC_ZPG;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu[0x12] = 0x43;
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu[0x12] == 0x42);
+
+    // Zero page x
+    cpu.reset();
+    cpu[RESET_LOC] = DEC_ZPX;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu.X = 0x10;
+    cpu[0x22] = 0x43;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu[0x22] == 0x42);
+
+    // Zero page x wrap
+    cpu.reset();
+    cpu[RESET_LOC] = DEC_ZPX;
+    cpu[RESET_LOC + 1] = 0xF5;
+    cpu.X = 0x10;
+    cpu[0x05] = 0x43;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu[0x05] == 0x42);
+
+    // Absolute
+    cpu.reset();
+    cpu[RESET_LOC] = DEC_ABS;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu[0x1234] = 0x43;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu[0x1234] == 0x42);
+
+    // Absolute x
+    cpu.reset();
+    cpu[RESET_LOC] = DEC_ABX;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu.X = 0x6;
+    cpu[0x123A] = 0x43;
+    ASSERT_TRUE(cpu.execute(7) == 7);
+    ASSERT_TRUE(cpu[0x123A] == 0x42);
+}
+TEST_F(INC_DEC, DEX) {
+    inc_dec_implied(cpu, DEX_IMP, cpu.X, 0x1,  -1, F_ZERO, F_NON_NEG);      // Zero
+    inc_dec_implied(cpu, DEX_IMP, cpu.X, 0x43, -1, F_NON_ZERO, F_NON_NEG);  // Positive
+    inc_dec_implied(cpu, DEX_IMP, cpu.X, 0xF0, -1, F_NON_ZERO, F_NEG);      // Negative
+}
+TEST_F(INC_DEC, DEY) {
+    inc_dec_implied(cpu, DEY_IMP, cpu.Y, 0x1,  -1, F_ZERO, F_NON_NEG);      // Zero
+    inc_dec_implied(cpu, DEY_IMP, cpu.Y, 0x43, -1, F_NON_ZERO, F_NON_NEG);  // Positive
+    inc_dec_implied(cpu, DEY_IMP, cpu.Y, 0xF0, -1, F_NON_ZERO, F_NEG);      // Negative
+}
 
 
 int main(int argc, char **argv) {

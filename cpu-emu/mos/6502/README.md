@@ -108,12 +108,12 @@ Notes:
 # Arithmetic
 ADC ....    add with carry
 SBC ....    subtract with carry
-INC ....    increment
-INX ....    increment X
-INY ....    increment Y
-DEC ....    decrement
-DEX ....    decrement X
-DEY ....    decrement Y
+INC     increment
+INX     increment X
+INY     increment Y
+DEC     decrement
+DEX     decrement X
+DEY     decrement Y
 
 # Bitwise arithmetic
 AND ....    and (with accumulator)
