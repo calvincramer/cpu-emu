@@ -13,7 +13,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 
 # Everything debug build
 add_compile_options(
-  "-Wall" "-Wpedantic" "-Wextra" "-fexceptions" "-O0" "-g3" "-ggdb"
+  "-Werror" "-Wall" "-Wpedantic" "-Wextra" "-fexceptions" "-O0" "-g3" "-ggdb"
 )
  
 add_subdirectory (src) 

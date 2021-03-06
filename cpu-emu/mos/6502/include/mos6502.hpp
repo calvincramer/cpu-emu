@@ -17,19 +17,9 @@ inline u8 lowByte(u16 x)  { return x & 0x0F; }
 inline u8 highByte(u16 x) { return x >> 8; }
 
 namespace mos6502 {
+    // Constants
     constexpr u16 RESET_LOC = 0xFFFD;   // Reset vector location
-
-    // P register (flags)
-    struct reg_flags {
-        u1 C : 1;   // carry
-        u1 Z : 1;   // zero
-        u1 I : 1;   // interrupt disable
-        u1 D : 1;   // decimal
-        u1 B : 1;   // break
-        u1 _ : 1;   // not used / ignored
-        u1 V : 1;   // overflow
-        u1 N : 1;   // negative
-    };
+    constexpr u32 MEM_MAX = 1 << 16;    // Max amount of memory
 
     class CPU {
      private:
@@ -40,48 +30,68 @@ namespace mos6502 {
             SR.N = ((val & 0x80) != 0);
         }
 
-        // Get the address / immediate from the current instruction
-        inline u8 get_imm()                    { return ram[PC + 1]; }
-        inline u8 get_zp_addr(u8 offset)       { return (u8) (ram[PC+1] + offset); }
-        inline u16 get_abs_addr(u8 offset)     { return B2W(ram[PC+1], ram[PC+2]) + offset; }
-        inline u16 get_indexed_indirect_addr() { return B2W(ram[(u8) (ram[PC+1] + X)], ram[(u8) (ram[PC+1] + X + 1)]); }
-        inline u16 get_indirect_indexed_addr() { return Y + B2W(ram[ram[PC+1]], ram[(u8) (ram[PC+1] + 1)]); }
+        struct av_pair { u16 addr; u8 val; };
 
-        inline void load_imm(u8& into) { 
-            into = get_imm();
-            set_ZN_flags(into);
+        // Addressing modes (some cover multiple modes with an offset)
+        av_pair addr_mode_get_imp(__attribute__((unused)) u8 _) { 
+            return { 0xFFFF, 0xFF };    // Implied register 
+        }
+        av_pair addr_mode_get_imm(__attribute__((unused)) u8 _) { 
+            return { 0xFFFF, ram[PC + 1] }; 
+        }
+        av_pair addr_mode_get_zp(u8 offset) { 
+            u8 addr = (u8) (ram[PC+1] + offset);
+            return { addr, ram[addr] }; 
+        }
+        av_pair addr_mode_get_abs(u8 offset) { 
+            u16 addr = B2W(ram[PC+1], ram[PC+2]) + offset;
+            return { addr, ram[addr] }; 
+        }
+        av_pair addr_mode_get_indexed_indirect(u8 offset) { 
+            u16 addr = B2W(ram[(u8) (ram[PC+1] + offset)], ram[(u8) (ram[PC+1] + offset + 1)]);
+            return { addr, ram[addr] };
+        }
+        av_pair addr_mode_get_indirect_indexed(u8 offset) { 
+            u16 addr = offset + B2W(ram[ram[PC+1]], ram[(u8) (ram[PC+1] + 1)]); 
+            return { addr, ram[addr] }; 
         }
 
-        inline void load_zp(u8& into, u8 offset = 0) { 
-            into = ram[get_zp_addr(offset)];
-            set_ZN_flags(into);
+        enum AddrMode {
+            IMP = 0, IMM = 1, 
+            ZPG = 2, ZPX = 3, ZPY = 4, 
+            ABS = 5, ABX = 6, ABY = 7, 
+            IDX = 8, IDY = 9,
+        };
+
+        // Must follow order in AddrMode enum
+        av_pair (CPU::*addr_mode_funcs[10])(u8) = {
+            &CPU::addr_mode_get_imp,
+            &CPU::addr_mode_get_imm,
+            &CPU::addr_mode_get_zp,
+            &CPU::addr_mode_get_zp,
+            &CPU::addr_mode_get_zp,
+            &CPU::addr_mode_get_abs,
+            &CPU::addr_mode_get_abs,
+            &CPU::addr_mode_get_abs,
+            &CPU::addr_mode_get_indexed_indirect,
+            &CPU::addr_mode_get_indirect_indexed,
+        };
+
+        inline av_pair addr_mode_get(AddrMode am, u8 offset = 0) { return (this->*addr_mode_funcs[am])(offset); }
+
+
+        inline void load(AddrMode am, u8& reg, u8 offset = 0) { 
+            av_pair av_p = addr_mode_get(am, offset);
+            reg = av_p.val;
+            if (am == ABX || am == ABY || am == IDY) {
+                numCycles -= (highByte(av_p.addr) != highByte(av_p.addr - offset));
+            }
+            set_ZN_flags(reg);
         }
 
-        inline void load_abs(u8& into, u32& numCycles, u8 offset = 0) { 
-            u16 addr = get_abs_addr(offset);
-            into = ram[addr]; 
-            numCycles -= (highByte(addr) != highByte(addr - offset));
-            set_ZN_flags(into);
-        }
-
-        inline void load_idx() {
-            A = ram[get_indexed_indirect_addr()];
-            set_ZN_flags(A);
-        }
-
-        inline void load_idy(u32& numCycles) {
-            u16 addr = get_indirect_indexed_addr();
-            A = ram[addr];
-            numCycles -= (highByte(addr) != highByte(addr - Y));
-            set_ZN_flags(A);
-        }
-
-        inline void store_zp(u8& regToStore, u8 offset = 0) {
-            ram[get_zp_addr(offset)] = regToStore;
-        }
-
-        inline void store_abs(u8& regToStore, u8 offset = 0) { 
-            ram[get_abs_addr(offset)] = regToStore; 
+        inline void store(AddrMode am, u8& reg, u8 offset = 0) {
+            av_pair av_p = addr_mode_get(am, offset);
+            ram[av_p.addr] = reg;
         }
 
         inline void transfer(u8& from, u8& to, bool updateFlags) {
@@ -89,56 +99,27 @@ namespace mos6502 {
             if (updateFlags) { set_ZN_flags(to); }
         }
 
-        inline void inc_dec_zp(s8 val, u8 offset = 0) {
-            u8 addr = get_zp_addr(offset);
-            ram[addr] += val;
-            set_ZN_flags(ram[addr]);
+        inline void inc_dec(AddrMode am, s8 val, u8 offset = 0, u8* impReg = nullptr) {
+            if (am == IMP) {
+                *impReg += val;
+                set_ZN_flags(*impReg);
+            } else {
+                av_pair av_p = addr_mode_get(am, offset);
+                ram[av_p.addr] += val;
+                set_ZN_flags(ram[av_p.addr]);
+            }
         }
 
-        inline void inc_dec_abs(s8 val, u8 offset = 0) {
-            u16 addr = get_abs_addr(offset);
-            ram[addr] += val;
-            set_ZN_flags(ram[addr]);
-        }
-
-        inline void add_to_reg(u8& reg, s8 val) {
-            reg += val;
-            set_ZN_flags(reg);
-        }
-
-        inline void and_imm() {
-            A &= get_imm();
-            set_ZN_flags(A);
-        }
-
-        inline void and_zp(u8 offset = 0) {
-            A &= ram[get_zp_addr(offset)];
-            set_ZN_flags(A);
-        }
-
-        inline void and_abs(u32& numCycles, u8 offset = 0) {
-            u16 addr = get_abs_addr(offset);
-            A &= ram[addr];
-            numCycles -= (highByte(addr) != highByte(addr - offset));
-            set_ZN_flags(A);
-        }
-
-        inline void and_idx() {
-            A &= ram[get_indexed_indirect_addr()];
-            set_ZN_flags(A);
-        }
-
-        inline void and_idy(u32& numCycles) {
-            u16 addr = get_indirect_indexed_addr();
-            A &= ram[addr];
-            numCycles -= (highByte(addr) != highByte(addr - Y));
+        inline void _and(AddrMode am, u8 offset = 0) {
+            av_pair av_p = addr_mode_get(am, offset);
+            A &= av_p.val;
+            if (am == ABX || am == ABY || am == IDY) {
+                numCycles -= (highByte(av_p.addr) != highByte(av_p.addr - offset));
+            }
             set_ZN_flags(A);
         }
 
      public:
-        // Constants
-        static const u32 MEM_MAX = 1 << 16;
-
         // Internal state
         u8 ram[MEM_MAX];    // 64 KiB random access memory (max addressable memory) 
         // All registers
@@ -146,8 +127,21 @@ namespace mos6502 {
         u8  A;          // accumulator register (aka 'A')
         u8  X;          // index register
         u8  Y;          // index register
-        reg_flags SR;   // status register (flags) (8 bits)
         u8  S;          // stack pointer (aka 'SP')
+        // Flags
+        struct {
+            u1 C : 1;       // flag: carry
+            u1 Z : 1;       // flag: zero
+            u1 I : 1;       // flag: interrupt disable
+            u1 D : 1;       // flag: decimal
+            u1 B : 1;       // flag: break
+            u1 _ : 1;       //       not used / ignored
+            u1 V : 1;       // flag: overflow
+            u1 N : 1;       // flag: negative
+        } SR;           // status register (flags) (8 bits)
+
+        // For execute() function, so we don't need to pass it around so much
+        u32 numCycles;
 
         // Methods
         void reset();
@@ -156,84 +150,19 @@ namespace mos6502 {
     };
 
     enum Instructions : u8 {
-        // Load from mem into A
-        LDA_IMM = 0xA9,
-        LDA_ZPG = 0xA5,
-        LDA_ZPX = 0xB5,
-        LDA_ABS = 0xAD,
-        LDA_ABX = 0xBD,
-        LDA_ABY = 0xB9,
-        LDA_IDX = 0xA1,
-        LDA_IDY = 0xB1,
-        // Load from mem into X
-        LDX_IMM = 0xA2,
-        LDX_ZPG = 0xA6,
-        LDX_ZPY = 0xB6,
-        LDX_ABS = 0xAE,
-        LDX_ABY = 0xBE,
-        // Load from mem into Y
-        LDY_IMM = 0xA0,
-        LDY_ZPG = 0xA4,
-        LDY_ZPX = 0xB4,
-        LDY_ABS = 0xAC,
-        LDY_ABX = 0xBC,
-        // Store A to mem 
-        STA_ZPG = 0x85,
-        STA_ZPX = 0x95,
-        STA_ABS = 0x8D,
-        STA_ABX = 0x9D,
-        STA_ABY = 0x99,
-        STA_IDX = 0x81,
-        STA_IDY = 0x91,
-        // Store X to mem 
-        STX_ZPG = 0x86,
-        STX_ZPY = 0x96,
-        STX_ABS = 0x8E,
-        // Store Y to mem 
-        STY_ZPG = 0x84,
-        STY_ZPX = 0x94,
-        STY_ABS = 0x8C,
-        // Copy one register to another
-        TAX_IMP = 0xAA,
-        TAY_IMP = 0xA8,
-        TSX_IMP = 0xBA,
-        TXA_IMP = 0x8A,
-        TXS_IMP = 0x9A,
-        TYA_IMP = 0x98,
-        // No op
+        LDA_IMM = 0xA9, LDA_ZPG = 0xA5, LDA_ZPX = 0xB5, LDA_ABS = 0xAD, LDA_ABX = 0xBD, LDA_ABY = 0xB9, LDA_IDX = 0xA1, LDA_IDY = 0xB1,
+        LDX_IMM = 0xA2, LDX_ZPG = 0xA6, LDX_ZPY = 0xB6, LDX_ABS = 0xAE, LDX_ABY = 0xBE,
+        LDY_IMM = 0xA0, LDY_ZPG = 0xA4, LDY_ZPX = 0xB4, LDY_ABS = 0xAC, LDY_ABX = 0xBC,
+        STA_ZPG = 0x85, STA_ZPX = 0x95, STA_ABS = 0x8D, STA_ABX = 0x9D, STA_ABY = 0x99, STA_IDX = 0x81, STA_IDY = 0x91,
+        STX_ZPG = 0x86, STX_ZPY = 0x96, STX_ABS = 0x8E,
+        STY_ZPG = 0x84, STY_ZPX = 0x94, STY_ABS = 0x8C,
+        TAX_IMP = 0xAA, TAY_IMP = 0xA8, TSX_IMP = 0xBA, TXA_IMP = 0x8A, TXS_IMP = 0x9A, TYA_IMP = 0x98,
         NOP_IMP = 0xEA,
-        // Clear flags
-        CLC_IMP = 0x18,
-        CLD_IMP = 0xD8,
-        CLI_IMP = 0x58,
-        CLV_IMP = 0xB8,
-        // Set flags
-        SEC_IMP = 0x38,
-        SED_IMP = 0xF8,
-        SEI_IMP = 0x78,
-        // Increment
-        INC_ZPG = 0xE6,
-        INC_ZPX = 0xF6,
-        INC_ABS = 0xEE,
-        INC_ABX = 0xFE,
-        INX_IMP = 0xE8,
-        INY_IMP = 0xC8,
-        // Decrement
-        DEC_ZPG = 0xC6,
-        DEC_ZPX = 0xD6,
-        DEC_ABS = 0xCE,
-        DEC_ABX = 0xDE,
-        DEX_IMP = 0xCA,
-        DEY_IMP = 0x88,
-        // And bitwise
-        AND_IMM = 0x29,
-        AND_ZPG = 0x25,
-        AND_ZPX = 0x35,
-        AND_ABS = 0x2D,
-        AND_ABX = 0x3D,
-        AND_ABY = 0x39,
-        AND_IDX = 0x21,
-        AND_IDY = 0x31,
+        CLC_IMP = 0x18, CLD_IMP = 0xD8, CLI_IMP = 0x58, CLV_IMP = 0xB8,
+        SEC_IMP = 0x38, SED_IMP = 0xF8, SEI_IMP = 0x78,
+        INC_ZPG = 0xE6, INC_ZPX = 0xF6, INC_ABS = 0xEE, INC_ABX = 0xFE, INX_IMP = 0xE8, INY_IMP = 0xC8,
+        DEC_ZPG = 0xC6, DEC_ZPX = 0xD6, DEC_ABS = 0xCE, DEC_ABX = 0xDE, DEX_IMP = 0xCA, DEY_IMP = 0x88,
+        AND_IMM = 0x29, AND_ZPG = 0x25, AND_ZPX = 0x35, AND_ABS = 0x2D, AND_ABX = 0x3D, AND_ABY = 0x39, AND_IDX = 0x21, AND_IDY = 0x31,
     };
 
     // Base number of cycles used per instruction, actual may be more on certain circumstances

@@ -28,79 +28,80 @@ void mos6502::CPU::reset() {
 }
 
 // Returns -1 on illegal instruction
-u32 mos6502::CPU::execute(u32 numCycles) {
-    u32 numCyclesSave = numCycles;  // Original number of cycles to execute
+u32 mos6502::CPU::execute(u32 p_numCycles) {
+    u32 numCyclesSave = p_numCycles;  // Original number of cycles to execute
+    numCycles = p_numCycles;
     u8 currentInstr;
 
     while (numCycles > 0) {
         currentInstr = getCurrentInstr();
         // Execute instruction
         switch (currentInstr) {
-            case LDA_IMM : load_imm(A);                             break;
-            case LDA_ZPG : load_zp(A);                              break;
-            case LDA_ZPX : load_zp(A, X);                           break;
-            case LDA_ABS : load_abs(A, numCycles);                  break;
-            case LDA_ABX : load_abs(A, numCycles, X);               break;
-            case LDA_ABY : load_abs(A, numCycles, Y);               break;
-            case LDA_IDX : load_idx();                              break;
-            case LDA_IDY : load_idy(numCycles);                     break;
-            case LDX_IMM : load_imm(X);                             break;
-            case LDX_ZPG : load_zp(X);                              break;
-            case LDX_ZPY : load_zp(X, Y);                           break;
-            case LDX_ABS : load_abs(X, numCycles);                  break;
-            case LDX_ABY : load_abs(X, numCycles, Y);               break;
-            case LDY_IMM : load_imm(Y);                             break;
-            case LDY_ZPG : load_zp(Y);                              break;
-            case LDY_ZPX : load_zp(Y, X);                           break;
-            case LDY_ABS : load_abs(Y, numCycles);                  break;
-            case LDY_ABX : load_abs(Y, numCycles, X);               break;
-            case STA_ZPG : store_zp(A);                             break;
-            case STA_ZPX : store_zp(A, X);                          break;
-            case STA_ABS : store_abs(A);                            break;
-            case STA_ABX : store_abs(A, X);                         break;
-            case STA_ABY : store_abs(A, Y);                         break;
-            case STA_IDX : ram[get_indexed_indirect_addr()] = A;    break;
-            case STA_IDY : ram[get_indirect_indexed_addr()] = A;    break;
-            case STX_ZPG : store_zp(X);                             break;
-            case STX_ZPY : store_zp(X, Y);                          break;
-            case STX_ABS : store_abs(X);                            break;
-            case STY_ZPG : store_zp(Y);                             break;
-            case STY_ZPX : store_zp(Y, X);                          break;
-            case STY_ABS : store_abs(Y);                            break;
-            case TAX_IMP : transfer(A, X, true);                    break;
-            case TAY_IMP : transfer(A, Y, true);                    break;
-            case TSX_IMP : transfer(S, X, true);                    break;
-            case TXA_IMP : transfer(X, A, true);                    break;
-            case TXS_IMP : transfer(X, S, false);                   break;
-            case TYA_IMP : transfer(Y, A, true);                    break;
-            case NOP_IMP : /* do nothing */                         break;
-            case CLC_IMP : SR.C = 0;                                break;
-            case CLD_IMP : SR.D = 0;                                break;
-            case CLI_IMP : SR.I = 0;                                break;
-            case CLV_IMP : SR.V = 0;                                break;
-            case SEC_IMP : SR.C = 1;                                break;
-            case SED_IMP : SR.D = 1;                                break;
-            case SEI_IMP : SR.I = 1;                                break;
-            case INC_ZPG : inc_dec_zp(1);                           break;
-            case INC_ZPX : inc_dec_zp(1, X);                        break;
-            case INC_ABS : inc_dec_abs(1);                          break;
-            case INC_ABX : inc_dec_abs(1, X);                       break;
-            case INX_IMP : add_to_reg(X, 1);                        break;
-            case INY_IMP : add_to_reg(Y, 1);                        break;
-            case DEC_ZPG : inc_dec_zp(-1);                          break;
-            case DEC_ZPX : inc_dec_zp(-1, X);                       break;
-            case DEC_ABS : inc_dec_abs(-1);                         break;
-            case DEC_ABX : inc_dec_abs(-1, X);                      break;
-            case DEX_IMP : add_to_reg(X, -1);                       break;
-            case DEY_IMP : add_to_reg(Y, -1);                       break;
-            case AND_IMM : and_imm();                               break;
-            case AND_ZPG : and_zp();                                break;
-            case AND_ZPX : and_zp(X);                               break;
-            case AND_ABS : and_abs(numCycles);                      break;
-            case AND_ABX : and_abs(numCycles, X);                   break;
-            case AND_ABY : and_abs(numCycles, Y);                   break;
-            case AND_IDX : and_idx();                               break;
-            case AND_IDY : and_idy(numCycles);                      break;
+            case LDA_IMM : load(IMM, A);                break;
+            case LDA_ZPG : load(ZPG, A);                break;
+            case LDA_ZPX : load(ZPX, A, X);             break;
+            case LDA_ABS : load(ABS, A);                break;
+            case LDA_ABX : load(ABX, A, X);             break;
+            case LDA_ABY : load(ABY, A, Y);             break;
+            case LDA_IDX : load(IDX, A, X);             break;
+            case LDA_IDY : load(IDY, A, Y);             break;
+            case LDX_IMM : load(IMM, X);                break;
+            case LDX_ZPG : load(ZPG, X);                break;
+            case LDX_ZPY : load(ZPY, X, Y);             break;
+            case LDX_ABS : load(ABS, X);                break;
+            case LDX_ABY : load(ABY, X, Y);             break;
+            case LDY_IMM : load(IMM, Y);                break;
+            case LDY_ZPG : load(ZPG, Y);                break;
+            case LDY_ZPX : load(ZPX, Y, X);             break;
+            case LDY_ABS : load(ABS, Y);                break;
+            case LDY_ABX : load(ABX, Y, X);             break;
+            case STA_ZPG : store(ZPG, A);               break;
+            case STA_ZPX : store(ZPX, A, X);            break;
+            case STA_ABS : store(ABS, A);               break;
+            case STA_ABX : store(ABX, A, X);            break;
+            case STA_ABY : store(ABY, A, Y);            break;
+            case STA_IDX : store(IDX, A, X);            break;
+            case STA_IDY : store(IDY, A, Y);            break;
+            case STX_ZPG : store(ZPG, X);               break;
+            case STX_ZPY : store(ZPY, X, Y);            break;
+            case STX_ABS : store(ABS, X);               break;
+            case STY_ZPG : store(ZPG, Y);               break;
+            case STY_ZPX : store(ZPX, Y, X);            break;
+            case STY_ABS : store(ABS, Y);               break;
+            case TAX_IMP : transfer(A, X, true);        break;
+            case TAY_IMP : transfer(A, Y, true);        break;
+            case TSX_IMP : transfer(S, X, true);        break;
+            case TXA_IMP : transfer(X, A, true);        break;
+            case TXS_IMP : transfer(X, S, false);       break;
+            case TYA_IMP : transfer(Y, A, true);        break;
+            case NOP_IMP : /* do nothing */             break;
+            case CLC_IMP : SR.C = 0;                    break;
+            case CLD_IMP : SR.D = 0;                    break;
+            case CLI_IMP : SR.I = 0;                    break;
+            case CLV_IMP : SR.V = 0;                    break;
+            case SEC_IMP : SR.C = 1;                    break;
+            case SED_IMP : SR.D = 1;                    break;
+            case SEI_IMP : SR.I = 1;                    break;
+            case INC_ZPG : inc_dec(ZPG,  1);            break;
+            case INC_ZPX : inc_dec(ZPX,  1, X);         break;
+            case INC_ABS : inc_dec(ABS,  1);            break;
+            case INC_ABX : inc_dec(ABX,  1, X);         break;
+            case INX_IMP : inc_dec(IMP,  1, 0, &X);     break;
+            case INY_IMP : inc_dec(IMP,  1, 0, &Y);     break;
+            case DEC_ZPG : inc_dec(ZPG, -1);            break;
+            case DEC_ZPX : inc_dec(ZPX, -1, X);         break;
+            case DEC_ABS : inc_dec(ABS, -1);            break;
+            case DEC_ABX : inc_dec(ABX, -1, X);         break;
+            case DEX_IMP : inc_dec(IMP, -1, 0, &X);     break;
+            case DEY_IMP : inc_dec(IMP, -1, 0, &Y);     break;
+            case AND_IMM : _and(IMM);                   break;
+            case AND_ZPG : _and(ZPG);                   break;
+            case AND_ZPX : _and(ZPX, X);                break;
+            case AND_ABS : _and(ABS);                   break;
+            case AND_ABX : _and(ABX, X);                break;
+            case AND_ABY : _and(ABY, Y);                break;
+            case AND_IDX : _and(IDX, X);                break;
+            case AND_IDY : _and(IDY, Y);                break;
             // Invalid instruction
             default: {
                 printf("BAD INSTRUCTION!!!!!!!!!!!!!!\n");
