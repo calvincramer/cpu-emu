@@ -119,6 +119,17 @@ namespace mos6502 {
             set_ZN_flags(A);
         }
 
+        inline void _eor(AddrMode am, u8 offset = 0) {
+            av_pair av_p = addr_mode_get(am, offset);
+            A ^= av_p.val;
+            if (am == ABX || am == ABY || am == IDY) {
+                numCycles -= (highByte(av_p.addr) != highByte(av_p.addr - offset));
+            }
+            set_ZN_flags(A);
+        }
+
+
+
      public:
         // Internal state
         u8 ram[MEM_MAX];    // 64 KiB random access memory (max addressable memory) 
@@ -163,6 +174,7 @@ namespace mos6502 {
         INC_ZPG = 0xE6, INC_ZPX = 0xF6, INC_ABS = 0xEE, INC_ABX = 0xFE, INX_IMP = 0xE8, INY_IMP = 0xC8,
         DEC_ZPG = 0xC6, DEC_ZPX = 0xD6, DEC_ABS = 0xCE, DEC_ABX = 0xDE, DEX_IMP = 0xCA, DEY_IMP = 0x88,
         AND_IMM = 0x29, AND_ZPG = 0x25, AND_ZPX = 0x35, AND_ABS = 0x2D, AND_ABX = 0x3D, AND_ABY = 0x39, AND_IDX = 0x21, AND_IDY = 0x31,
+        EOR_IMM = 0x49, EOR_ZPG = 0x45, EOR_ZPX = 0x55, EOR_ABS = 0x4D, EOR_ABX = 0x5D, EOR_ABY = 0x59, EOR_IDX = 0x41, EOR_IDY = 0x51,
     };
 
     // Base number of cycles used per instruction, actual may be more on certain circumstances

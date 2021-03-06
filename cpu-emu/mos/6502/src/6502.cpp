@@ -102,6 +102,14 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
             case AND_ABY : _and(ABY, Y);                break;
             case AND_IDX : _and(IDX, X);                break;
             case AND_IDY : _and(IDY, Y);                break;
+            case EOR_IMM : _eor(IMM);                   break;
+            case EOR_ZPG : _eor(ZPG);                   break;
+            case EOR_ZPX : _eor(ZPX, X);                break;
+            case EOR_ABS : _eor(ABS);                   break;
+            case EOR_ABX : _eor(ABX, X);                break;
+            case EOR_ABY : _eor(ABY, Y);                break;
+            case EOR_IDX : _eor(IDX, X);                break;
+            case EOR_IDY : _eor(IDY, Y);                break;
             // Invalid instruction
             default: {
                 printf("BAD INSTRUCTION!!!!!!!!!!!!!!\n");
