@@ -1,2 +1,6 @@
 # All build directories
 build/
+
+# Project folders
+.vs/
+.vscode/

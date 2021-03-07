@@ -144,8 +144,8 @@ DEY     decrement Y
 
 # Bitwise arithmetic
 AND     and (with accumulator)
-EOR ....    exclusive or (with accumulator)
-ORA ....    or (with accumulator)
+EOR     exclusive or (with accumulator)
+ORA     or (with accumulator)
 ROL ....    rotate left
 ROR ....    rotate right
 

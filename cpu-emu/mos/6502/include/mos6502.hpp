@@ -30,6 +30,10 @@ namespace mos6502 {
             SR.N = ((val & 0x80) != 0);
         }
 
+        static u8 bitwise_and(u8 op1, u8 op2) { return op1 & op2; }
+        static u8 bitwise_eor(u8 op1, u8 op2) { return op1 ^ op2; }
+        static u8 bitwise_or(u8 op1, u8 op2)  { return op1 | op2; }
+
         struct av_pair { u16 addr; u8 val; };
 
         // Addressing modes (some cover multiple modes with an offset)
@@ -110,25 +114,14 @@ namespace mos6502 {
             }
         }
 
-        inline void _and(AddrMode am, u8 offset = 0) {
+        inline void arithmetic(AddrMode am, u8 (*mathOpFunc)(u8, u8), u8 offset = 0) {
             av_pair av_p = addr_mode_get(am, offset);
-            A &= av_p.val;
+            A = mathOpFunc(A, av_p.val);
             if (am == ABX || am == ABY || am == IDY) {
                 numCycles -= (highByte(av_p.addr) != highByte(av_p.addr - offset));
             }
             set_ZN_flags(A);
         }
-
-        inline void _eor(AddrMode am, u8 offset = 0) {
-            av_pair av_p = addr_mode_get(am, offset);
-            A ^= av_p.val;
-            if (am == ABX || am == ABY || am == IDY) {
-                numCycles -= (highByte(av_p.addr) != highByte(av_p.addr - offset));
-            }
-            set_ZN_flags(A);
-        }
-
-
 
      public:
         // Internal state
@@ -175,6 +168,7 @@ namespace mos6502 {
         DEC_ZPG = 0xC6, DEC_ZPX = 0xD6, DEC_ABS = 0xCE, DEC_ABX = 0xDE, DEX_IMP = 0xCA, DEY_IMP = 0x88,
         AND_IMM = 0x29, AND_ZPG = 0x25, AND_ZPX = 0x35, AND_ABS = 0x2D, AND_ABX = 0x3D, AND_ABY = 0x39, AND_IDX = 0x21, AND_IDY = 0x31,
         EOR_IMM = 0x49, EOR_ZPG = 0x45, EOR_ZPX = 0x55, EOR_ABS = 0x4D, EOR_ABX = 0x5D, EOR_ABY = 0x59, EOR_IDX = 0x41, EOR_IDY = 0x51,
+        ORA_IMM = 0x09, ORA_ZPG = 0x05, ORA_ZPX = 0x15, ORA_ABS = 0x0D, ORA_ABX = 0x1D, ORA_ABY = 0x19, ORA_IDX = 0x01, ORA_IDY = 0x11,
     };
 
     // Base number of cycles used per instruction, actual may be more on certain circumstances
