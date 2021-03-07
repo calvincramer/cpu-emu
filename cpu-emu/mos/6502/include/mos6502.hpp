@@ -34,13 +34,21 @@ namespace mos6502 {
         u8 bitwise_and(u8 op1, u8 op2) { return op1 & op2; }
         u8 bitwise_eor(u8 op1, u8 op2) { return op1 ^ op2; }
         u8 bitwise_or(u8 op1, u8 op2)  { return op1 | op2; }
-        u8 shift_left(u8 op1, u8 op2) {     // Arithmetic shift left
-            SR.C = (op1 & 0b10000000) != 0;
-            return op1 << op2;
+        void shift_left(u8& op) {        // Arithmetic shift left by 1
+            SR.C = (op & 0b10000000) != 0;
+            op = op << 1;
         }
-        u8 shift_right(u8 op1, u8 op2) {    // Logical shift right
-            SR.C = op1 & 0b00000001;
-            return op1 >> op2;
+        void shift_right(u8& op) {       // Logical shift right by 1
+            SR.C = op & 0b00000001;
+            op = op >> 1;
+        }
+        void rotate_left(u8& op) {      // Rotate left by 1
+            SR.C = (op & 0b10000000) != 0;
+            op = (op << 1) + SR.C;
+        }
+        void rotate_right(u8& op) {     // Rotate right by 1
+            SR.C = op & 0b00000001;
+            op = (op >> 1) + (SR.C << 7);
         }
 
         struct av_pair { u16 addr; u8 val; };
@@ -134,16 +142,11 @@ namespace mos6502 {
             set_ZN_flags(A);
         }
 
-        // ASL, LSR
-        inline void shift(AddrMode am, u8 (CPU::*mathOpFunc)(u8, u8), u8 offset = 0) {
-            if (am == IMP) {
-                A = (this->*mathOpFunc)(A, 1);
-                set_ZN_flags(A);
-            } else {
-                av_pair av_p = addr_mode_get(am, offset);
-                ram[av_p.addr] = (this->*mathOpFunc)(ram[av_p.addr], 1);
-                set_ZN_flags(ram[av_p.addr]);
-            }
+        // ASL, LSR, ROL, ROR
+        inline void shift_rot(AddrMode am, void (CPU::*mathShiftFunc)(u8&), u8 offset = 0) {
+            u8& toShift = (am == IMP) ? A : ram[addr_mode_get(am, offset).addr];
+            (this->*mathShiftFunc)(toShift);
+            set_ZN_flags(toShift);
         }
 
      public:
@@ -194,6 +197,8 @@ namespace mos6502 {
         ORA_IMM = 0x09, ORA_ZPG = 0x05, ORA_ZPX = 0x15, ORA_ABS = 0x0D, ORA_ABX = 0x1D, ORA_ABY = 0x19, ORA_IDX = 0x01, ORA_IDY = 0x11,
         ASL_IMP = 0x0A, ASL_ZPG = 0x06, ASL_ZPX = 0x16, ASL_ABS = 0x0E, ASL_ABX = 0x1E, 
         LSR_IMP = 0x4A, LSR_ZPG = 0x46, LSR_ZPX = 0x56, LSR_ABS = 0x4E, LSR_ABX = 0x5E,
+        ROL_IMP = 0x2A, ROL_ZPG = 0x26, ROL_ZPX = 0x36, ROL_ABS = 0x2E, ROL_ABX = 0x3E,
+        ROR_IMP = 0x6A, ROR_ZPG = 0x66, ROR_ZPX = 0x76, ROR_ABS = 0x6E, ROR_ABX = 0x7E,
     };
 
     // Base number of cycles used per instruction, actual may be more on certain circumstances

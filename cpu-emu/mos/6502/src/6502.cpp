@@ -118,16 +118,27 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
             case ORA_ABY : arith(ABY, &CPU::bitwise_or,  Y);        break;
             case ORA_IDX : arith(IDX, &CPU::bitwise_or,  X);        break;
             case ORA_IDY : arith(IDY, &CPU::bitwise_or,  Y);        break;
-            case ASL_IMP : shift(IMP, &CPU::shift_left);            break;
-            case ASL_ZPG : shift(ZPG, &CPU::shift_left);            break;
-            case ASL_ZPX : shift(ZPX, &CPU::shift_left,  X);        break;
-            case ASL_ABS : shift(ABS, &CPU::shift_left);            break;
-            case ASL_ABX : shift(ABX, &CPU::shift_left,  X);        break;
-            case LSR_IMP : shift(IMP, &CPU::shift_right);           break;
-            case LSR_ZPG : shift(ZPG, &CPU::shift_right);           break;
-            case LSR_ZPX : shift(ZPX, &CPU::shift_right, X);        break;
-            case LSR_ABS : shift(ABS, &CPU::shift_right);           break;
-            case LSR_ABX : shift(ABX, &CPU::shift_right, X);        break;
+            case ASL_IMP : shift_rot(IMP, &CPU::shift_left);        break;
+            case ASL_ZPG : shift_rot(ZPG, &CPU::shift_left);        break;
+            case ASL_ZPX : shift_rot(ZPX, &CPU::shift_left,  X);    break;
+            case ASL_ABS : shift_rot(ABS, &CPU::shift_left);        break;
+            case ASL_ABX : shift_rot(ABX, &CPU::shift_left,  X);    break;
+            case LSR_IMP : shift_rot(IMP, &CPU::shift_right);       break;
+            case LSR_ZPG : shift_rot(ZPG, &CPU::shift_right);       break;
+            case LSR_ZPX : shift_rot(ZPX, &CPU::shift_right, X);    break;
+            case LSR_ABS : shift_rot(ABS, &CPU::shift_right);       break;
+            case LSR_ABX : shift_rot(ABX, &CPU::shift_right, X);    break;
+            case ROL_IMP : shift_rot(IMP, &CPU::rotate_left);       break;
+            case ROL_ZPG : shift_rot(ZPG, &CPU::rotate_left);       break;
+            case ROL_ZPX : shift_rot(ZPX, &CPU::rotate_left, X);    break;
+            case ROL_ABS : shift_rot(ABS, &CPU::rotate_left);       break;
+            case ROL_ABX : shift_rot(ABX, &CPU::rotate_left, X);    break;
+            case ROR_IMP : shift_rot(IMP, &CPU::rotate_right);      break;
+            case ROR_ZPG : shift_rot(ZPG, &CPU::rotate_right);      break;
+            case ROR_ZPX : shift_rot(ZPX, &CPU::rotate_right, X);   break;
+            case ROR_ABS : shift_rot(ABS, &CPU::rotate_right);      break;
+            case ROR_ABX : shift_rot(ABX, &CPU::rotate_right, X);   break;
+
             // Invalid instruction
             default: {
                 printf("BAD INSTRUCTION!!!!!!!!!!!!!!\n");

@@ -146,8 +146,8 @@ EOR     exclusive or (with accumulator)
 ORA     or (with accumulator)
 ASL     arithmetic shift left
 LSR     logical shift right
-ROL ....    rotate left
-ROR ....    rotate right
+ROL     rotate left
+ROR     rotate right
 
 # Comparison 
 BIT ....    bit test
