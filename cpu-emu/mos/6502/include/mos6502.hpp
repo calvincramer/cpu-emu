@@ -23,16 +23,25 @@ namespace mos6502 {
 
     class CPU {
      private:
-        u8 getCurrentInstr() { return this->ram[this->PC]; }
+        inline u8 getCurrentInstr() { return this->ram[this->PC]; }
         
         inline void set_ZN_flags(u8 val) {
             SR.Z = (val == 0);
-            SR.N = ((val & 0x80) != 0);
+            SR.N = ((val & 0b10000000) != 0);
         }
 
-        static u8 bitwise_and(u8 op1, u8 op2) { return op1 & op2; }
-        static u8 bitwise_eor(u8 op1, u8 op2) { return op1 ^ op2; }
-        static u8 bitwise_or(u8 op1, u8 op2)  { return op1 | op2; }
+        // Arithmetic functions
+        u8 bitwise_and(u8 op1, u8 op2) { return op1 & op2; }
+        u8 bitwise_eor(u8 op1, u8 op2) { return op1 ^ op2; }
+        u8 bitwise_or(u8 op1, u8 op2)  { return op1 | op2; }
+        u8 shift_left(u8 op1, u8 op2) {     // Arithmetic shift left
+            SR.C = (op1 & 0b10000000) != 0;
+            return op1 << op2;
+        }
+        u8 shift_right(u8 op1, u8 op2) {    // Logical shift right
+            SR.C = op1 & 0b00000001;
+            return op1 >> op2;
+        }
 
         struct av_pair { u16 addr; u8 val; };
 
@@ -61,10 +70,11 @@ namespace mos6502 {
         }
 
         enum AddrMode {
-            IMP = 0, IMM = 1, 
-            ZPG = 2, ZPX = 3, ZPY = 4, 
-            ABS = 5, ABX = 6, ABY = 7, 
-            IDX = 8, IDY = 9,
+            IMP = 0,    // Register to use is implied in the instruction
+            IMM = 1,    // Immediate value in instruction after opcode
+            ZPG = 2, ZPX = 3, ZPY = 4,  // zero page addressing
+            ABS = 5, ABX = 6, ABY = 7,  // absolute memory address
+            IDX = 8, IDY = 9,           // indirect addressing
         };
 
         // Must follow order in AddrMode enum
@@ -114,13 +124,26 @@ namespace mos6502 {
             }
         }
 
-        inline void arithmetic(AddrMode am, u8 (*mathOpFunc)(u8, u8), u8 offset = 0) {
+        // AND, EOR, ORA
+        inline void arith(AddrMode am, u8 (CPU::*mathOpFunc)(u8, u8), u8 offset = 0) {
             av_pair av_p = addr_mode_get(am, offset);
-            A = mathOpFunc(A, av_p.val);
+            A = (this->*mathOpFunc)(A, av_p.val);
             if (am == ABX || am == ABY || am == IDY) {
                 numCycles -= (highByte(av_p.addr) != highByte(av_p.addr - offset));
             }
             set_ZN_flags(A);
+        }
+
+        // ASL, LSR
+        inline void shift(AddrMode am, u8 (CPU::*mathOpFunc)(u8, u8), u8 offset = 0) {
+            if (am == IMP) {
+                A = (this->*mathOpFunc)(A, 1);
+                set_ZN_flags(A);
+            } else {
+                av_pair av_p = addr_mode_get(am, offset);
+                ram[av_p.addr] = (this->*mathOpFunc)(ram[av_p.addr], 1);
+                set_ZN_flags(ram[av_p.addr]);
+            }
         }
 
      public:
@@ -169,6 +192,8 @@ namespace mos6502 {
         AND_IMM = 0x29, AND_ZPG = 0x25, AND_ZPX = 0x35, AND_ABS = 0x2D, AND_ABX = 0x3D, AND_ABY = 0x39, AND_IDX = 0x21, AND_IDY = 0x31,
         EOR_IMM = 0x49, EOR_ZPG = 0x45, EOR_ZPX = 0x55, EOR_ABS = 0x4D, EOR_ABX = 0x5D, EOR_ABY = 0x59, EOR_IDX = 0x41, EOR_IDY = 0x51,
         ORA_IMM = 0x09, ORA_ZPG = 0x05, ORA_ZPX = 0x15, ORA_ABS = 0x0D, ORA_ABX = 0x1D, ORA_ABY = 0x19, ORA_IDX = 0x01, ORA_IDY = 0x11,
+        ASL_IMP = 0x0A, ASL_ZPG = 0x06, ASL_ZPX = 0x16, ASL_ABS = 0x0E, ASL_ABX = 0x1E, 
+        LSR_IMP = 0x4A, LSR_ZPG = 0x46, LSR_ZPX = 0x56, LSR_ABS = 0x4E, LSR_ABX = 0x5E,
     };
 
     // Base number of cycles used per instruction, actual may be more on certain circumstances

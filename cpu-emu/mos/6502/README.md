@@ -141,17 +141,13 @@ INY     increment Y
 DEC     decrement
 DEX     decrement X
 DEY     decrement Y
-
-# Bitwise arithmetic
 AND     and (with accumulator)
 EOR     exclusive or (with accumulator)
 ORA     or (with accumulator)
+ASL     arithmetic shift left
+LSR     logical shift right
 ROL ....    rotate left
 ROR ....    rotate right
-
-# Shifting
-ASL ....    arithmetic shift left
-LSR ....    logical shift right
 
 # Comparison 
 BIT ....    bit test
@@ -171,8 +167,6 @@ BVS ....    branch on overflow set
 JMP ....    jump
 JSR ....    jump subroutine
 RTS ....    return from subroutine
-
-
 
 # Push / pop stack
 PHA ....    push accumulator

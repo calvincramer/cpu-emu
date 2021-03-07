@@ -10,6 +10,10 @@ using namespace mos6502;
 #define F_NEG 1
 #define F_NON_NEG 0
 
+#define F_YES_CARRY 1
+#define F_NO_CARRY 0
+
+
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
@@ -45,6 +49,8 @@ class INC_DEC       : public SetupCPU_F {};
 class AND           : public SetupCPU_F {};
 class EOR           : public SetupCPU_F {};
 class ORA           : public SetupCPU_F {};
+class ASL           : public SetupCPU_F {};
+class LSR           : public SetupCPU_F {};
 
 TEST_F(Api, Reset) { cpu.reset(); }
 TEST_F(Api, Execute) { cpu.execute(0); }
@@ -237,6 +243,7 @@ void load_indirect_indexed(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles) {
     common_load_execute(cpu, cycles + 1, cycles + 1, loadToReg, 0xee, F_NON_ZERO, F_NEG);
 }
 
+
 // LDA
 TEST_F(LDA, Immediate)       { load_immediate(cpu, LDA_IMM, cpu.A); }
 TEST_F(LDA, ZeroPage)        { load_zero_page(cpu, LDA_ZPG, cpu.A, 3); }
@@ -247,12 +254,14 @@ TEST_F(LDA, AbsoluteY)       { load_absolute (cpu, LDA_ABY, cpu.A, 4, &cpu.Y, 0x
 TEST_F(LDA, IndexedIndirect) { load_indexed_indirect(cpu, LDA_IDX, cpu.A, 6); }
 TEST_F(LDA, IndirectIndexed) { load_indirect_indexed(cpu, LDA_IDY, cpu.A, 5); }
 
+
 // LDX
 TEST_F(LDX, Immediate) { load_immediate(cpu, LDX_IMM, cpu.X); }
 TEST_F(LDX, ZeroPage)  { load_zero_page(cpu, LDX_ZPG, cpu.X, 3); }
 TEST_F(LDX, ZeroPageY) { load_zero_page(cpu, LDX_ZPY, cpu.X, 4, &cpu.Y, 0xA); }
 TEST_F(LDX, Absolute)  { load_absolute (cpu, LDX_ABS, cpu.X, 4); }
 TEST_F(LDX, AbsoluteY) { load_absolute (cpu, LDX_ABY, cpu.X, 4, &cpu.Y, 0x5); }
+
 
 // LDY
 TEST_F(LDY, Immediate) { load_immediate(cpu, LDY_IMM, cpu.Y); }
@@ -318,6 +327,7 @@ void store_indirect_indexed(CPU& cpu, u8 storeInst, u8& storeReg, u8 cycles) {
     ASSERT_TRUE(cpu[0x1239] == storeReg);
 }
 
+
 // STA
 TEST_F(STA, ZeroPage)        { store_common_zero_page(cpu, STA_ZPG, cpu.A, 3); }
 TEST_F(STA, ZeroPageX)       { store_common_zero_page(cpu, STA_ZPX, cpu.A, 4, &cpu.X, 0xFF); }
@@ -327,15 +337,18 @@ TEST_F(STA, AbsoluteY)       { store_common_absolute (cpu, STA_ABY, cpu.A, 5, &c
 TEST_F(STA, IndexedIndirect) { store_indexed_indirect(cpu, STA_IDX, cpu.A, 6); }
 TEST_F(STA, IndirectIndexed) { store_indirect_indexed(cpu, STA_IDY, cpu.A, 6); }
 
+
 // STX
 TEST_F(STX, ZeroPage)   { store_common_zero_page(cpu, STX_ZPG, cpu.X, 3); }
 TEST_F(STX, ZeroPageY)  { store_common_zero_page(cpu, STX_ZPY, cpu.X, 4, &cpu.Y, 0xFF); }
 TEST_F(STX, Absolute)   { store_common_absolute (cpu, STX_ABS, cpu.X, 4); }
 
+
 // STY
 TEST_F(STY, ZeroPage)   { store_common_zero_page(cpu, STY_ZPG, cpu.Y, 3); }
 TEST_F(STY, ZeroPageX)  { store_common_zero_page(cpu, STY_ZPX, cpu.Y, 4, &cpu.X, 0xFF); }
 TEST_F(STY, Absolute)   { store_common_absolute (cpu, STY_ABS, cpu.Y, 4); }
+
 
 // Transfer
 void transfer_common(CPU& cpu, u8 inst, u8& fromReg, u8& toReg, bool check_flags) {
@@ -373,12 +386,12 @@ void transfer_common(CPU& cpu, u8 inst, u8& fromReg, u8& toReg, bool check_flags
     }
 }
 
-TEST_F(TRANSFER, TAX) { transfer_common(cpu, TAX_IMP, cpu.A, cpu.X, true); }
-TEST_F(TRANSFER, TAY) { transfer_common(cpu, TAY_IMP, cpu.A, cpu.Y, true); }
-TEST_F(TRANSFER, TSX) { transfer_common(cpu, TSX_IMP, cpu.S, cpu.X, true); }
-TEST_F(TRANSFER, TXA) { transfer_common(cpu, TXA_IMP, cpu.X, cpu.A, true); }
-TEST_F(TRANSFER, TXS) { transfer_common(cpu, TXS_IMP, cpu.X, cpu.S, false); }
-TEST_F(TRANSFER, TYA) { transfer_common(cpu, TYA_IMP, cpu.Y, cpu.A, true); }
+TEST_F(TRANSFER, TransferA_to_X) { transfer_common(cpu, TAX_IMP, cpu.A, cpu.X, true); }
+TEST_F(TRANSFER, TransferA_to_Y) { transfer_common(cpu, TAY_IMP, cpu.A, cpu.Y, true); }
+TEST_F(TRANSFER, TransferS_to_X) { transfer_common(cpu, TSX_IMP, cpu.S, cpu.X, true); }
+TEST_F(TRANSFER, TransferX_to_A) { transfer_common(cpu, TXA_IMP, cpu.X, cpu.A, true); }
+TEST_F(TRANSFER, TransferX_to_S) { transfer_common(cpu, TXS_IMP, cpu.X, cpu.S, false); }
+TEST_F(TRANSFER, TransferY_to_A) { transfer_common(cpu, TYA_IMP, cpu.Y, cpu.A, true); }
 
 
 // No op
@@ -457,7 +470,7 @@ void inc_dec_implied(CPU& cpu, u8 inst, u8& incDecReg, u8 startingVal, s8 offset
 }
 
 // Zero and Negative flags not tested for INC and DEC, but covered under INX, INY, DEX, DEY
-TEST_F(INC_DEC, INC) {
+TEST_F(INC_DEC, Increment) {
     // Zero page
     cpu[RESET_LOC] = INC_ZPG;
     cpu[RESET_LOC + 1] = 0x12;
@@ -502,17 +515,17 @@ TEST_F(INC_DEC, INC) {
     ASSERT_TRUE(cpu.execute(7) == 7);
     ASSERT_TRUE(cpu[0x123A] == 0x42);
 }
-TEST_F(INC_DEC, INX) {
+TEST_F(INC_DEC, IncrementX) {
     inc_dec_implied(cpu, INX_IMP, cpu.X, 0xFF, 1, F_ZERO, F_NON_NEG);       // Zero
     inc_dec_implied(cpu, INX_IMP, cpu.X, 0x41, 1, F_NON_ZERO, F_NON_NEG);   // Positive
     inc_dec_implied(cpu, INX_IMP, cpu.X, 0xF0, 1, F_NON_ZERO, F_NEG);       // Negative
 }
-TEST_F(INC_DEC, INY) {
+TEST_F(INC_DEC, IncrementY) {
     inc_dec_implied(cpu, INY_IMP, cpu.Y, 0xFF, 1, F_ZERO, F_NON_NEG);       // Zero
     inc_dec_implied(cpu, INY_IMP, cpu.Y, 0x41, 1, F_NON_ZERO, F_NON_NEG);   // Positive
     inc_dec_implied(cpu, INY_IMP, cpu.Y, 0xF0, 1, F_NON_ZERO, F_NEG);       // Negative
 }
-TEST_F(INC_DEC, DEC) {
+TEST_F(INC_DEC, Decrement) {
     // Zero page
     cpu[RESET_LOC] = DEC_ZPG;
     cpu[RESET_LOC + 1] = 0x12;
@@ -557,12 +570,12 @@ TEST_F(INC_DEC, DEC) {
     ASSERT_TRUE(cpu.execute(7) == 7);
     ASSERT_TRUE(cpu[0x123A] == 0x42);
 }
-TEST_F(INC_DEC, DEX) {
+TEST_F(INC_DEC, DecrementX) {
     inc_dec_implied(cpu, DEX_IMP, cpu.X, 0x1,  -1, F_ZERO, F_NON_NEG);      // Zero
     inc_dec_implied(cpu, DEX_IMP, cpu.X, 0x43, -1, F_NON_ZERO, F_NON_NEG);  // Positive
     inc_dec_implied(cpu, DEX_IMP, cpu.X, 0xF0, -1, F_NON_ZERO, F_NEG);      // Negative
 }
-TEST_F(INC_DEC, DEY) {
+TEST_F(INC_DEC, DecrementY) {
     inc_dec_implied(cpu, DEY_IMP, cpu.Y, 0x1,  -1, F_ZERO, F_NON_NEG);      // Zero
     inc_dec_implied(cpu, DEY_IMP, cpu.Y, 0x43, -1, F_NON_ZERO, F_NON_NEG);  // Positive
     inc_dec_implied(cpu, DEY_IMP, cpu.Y, 0xF0, -1, F_NON_ZERO, F_NEG);      // Negative
@@ -935,4 +948,132 @@ TEST_F(ORA, IndirectY)  {
     cpu[0x1326] = 0x55;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu.A == 0xF5);
+}
+
+
+// ASL
+TEST_F(ASL, Accumulator) {
+    // No carry
+    cpu[RESET_LOC] = ASL_IMP;
+    cpu.A = 0x08;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x10);
+    ASSERT_TRUE(cpu.SR.C == F_NO_CARRY);
+
+    // Carry
+    cpu.reset();
+    cpu[RESET_LOC] = ASL_IMP;
+    cpu.A = 0xFF;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0xFE);
+    ASSERT_TRUE(cpu.SR.C == F_YES_CARRY);
+
+    // Zero
+    cpu.reset();
+    cpu[RESET_LOC] = ASL_IMP;
+    cpu.A = 0x80;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x0);
+    ASSERT_TRUE(cpu.SR.C == F_YES_CARRY);
+
+    // Negative
+    cpu.reset();
+    cpu[RESET_LOC] = ASL_IMP;
+    cpu.A = 0x40;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x80);
+    ASSERT_TRUE(cpu.SR.N == F_NEG);
+}
+// Assume flags are set correctly now, only test shift is correct
+TEST_F(ASL, ZeroPage) {
+    cpu[RESET_LOC] = ASL_ZPG;
+    cpu[RESET_LOC + 1] = 0x42;
+    cpu[0x42] = 0x12;
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu[0x42] == 0x24);
+}
+TEST_F(ASL, ZeroPageX) {
+    cpu[RESET_LOC] = ASL_ZPX;
+    cpu[RESET_LOC + 1] = 0x42;
+    cpu.X = 0x10;
+    cpu[0x52] = 0x12;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu[0x52] == 0x24);
+}
+TEST_F(ASL, Absolute) {
+    cpu[RESET_LOC] = ASL_ABS;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu[0x1234] = 0x12;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu[0x1234] == 0x24);
+}
+TEST_F(ASL, AbsoluteX) {
+    cpu[RESET_LOC] = ASL_ABX;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu.X = 0x1;
+    cpu[0x1235] = 0x12;
+    ASSERT_TRUE(cpu.execute(7) == 7);
+    ASSERT_TRUE(cpu[0x1235] == 0x24);
+}
+
+
+// LSR
+TEST_F(LSR, Accumulator) {
+    // No carry
+    cpu[RESET_LOC] = LSR_IMP;
+    cpu.A = 0x08;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x04);
+    ASSERT_TRUE(cpu.SR.C == F_NO_CARRY);
+
+    // Carry
+    cpu.reset();
+    cpu[RESET_LOC] = LSR_IMP;
+    cpu.A = 0xFF;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x7F);
+    ASSERT_TRUE(cpu.SR.C == F_YES_CARRY);
+
+    // Zero
+    cpu.reset();
+    cpu[RESET_LOC] = LSR_IMP;
+    cpu.A = 0x01;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x0);
+    ASSERT_TRUE(cpu.SR.C == F_YES_CARRY);
+}
+// Assume flags are set correctly now, only test shift is correct
+TEST_F(LSR, ZeroPage) {
+    cpu[RESET_LOC] = LSR_ZPG;
+    cpu[RESET_LOC + 1] = 0x42;
+    cpu[0x42] = 0x12;
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu[0x42] == 0x09);
+}
+TEST_F(LSR, ZeroPageX) {
+    cpu[RESET_LOC] = LSR_ZPX;
+    cpu[RESET_LOC + 1] = 0x42;
+    cpu.X = 0x10;
+    cpu[0x52] = 0x12;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu[0x52] == 0x09);
+}
+TEST_F(LSR, Absolute) {
+    cpu[RESET_LOC] = LSR_ABS;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu[0x1234] = 0x12;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu[0x1234] == 0x09);
+}
+TEST_F(LSR, AbsoluteX) {
+    cpu[RESET_LOC] = LSR_ABX;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu.X = 0x1;
+    cpu[0x1235] = 0x12;
+    ASSERT_TRUE(cpu.execute(7) == 7);
+    ASSERT_TRUE(cpu[0x1235] == 0x09);
 }
