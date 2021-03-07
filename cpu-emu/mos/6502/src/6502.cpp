@@ -139,6 +139,23 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
             case ROR_ABS : shift_rot(ABS, &CPU::rotate_right);      break;
             case ROR_ABX : shift_rot(ABX, &CPU::rotate_right, X);   break;
 
+            case ADC_IMM : /* TODO */ break;
+            case ADC_ZPG : /* TODO */ break;
+            case ADC_ZPX : /* TODO */ break;
+            case ADC_ABS : /* TODO */ break;
+            case ADC_ABX : /* TODO */ break;
+            case ADC_ABY : /* TODO */ break;
+            case ADC_IDX : /* TODO */ break;
+            case ADC_IDY : /* TODO */ break;
+            case SBC_IMM : /* TODO */ break;
+            case SBC_ZPG : /* TODO */ break;
+            case SBC_ZPX : /* TODO */ break;
+            case SBC_ABS : /* TODO */ break;
+            case SBC_ABX : /* TODO */ break;
+            case SBC_ABY : /* TODO */ break;
+            case SBC_IDX : /* TODO */ break;
+            case SBC_IDY : /* TODO */ break;
+            
             // Invalid instruction
             default: {
                 printf("BAD INSTRUCTION!!!!!!!!!!!!!!\n");
