@@ -2,10 +2,18 @@
 
 ## Build
 ```sh
+# Debug
 cd <repo>/cpu-emu/mos/6502
-mkdir build
-cd build
-cmake ..
+mkdir build-optim
+cd build-optim
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make
+
+# Optimized
+cd <repo>/cpu-emu/mos/6502
+mkdir build-debug
+cd build-debug
+cmake .. -DCMAKE_BUILD_TYPE=Debug
 make
 ```
 
@@ -54,7 +62,7 @@ $FFFE, $FFFF ... IRQ (Interrupt Request) vector
 
 * A - accumulator 8 bits
 * X, Y - index registers, 8 bits each
-* P - 6 flags, 1-bit each: 
+* P - 6 flags, 1-bit each:
 * S - stack pointer 8 bits
 * PC - program counter 16 bits
 
@@ -73,7 +81,7 @@ $FFFE, $FFFF ... IRQ (Interrupt Request) vector
 
 The addressing mode determines the operand of the instruction
 
-(IMP) Accumulator       A       A reg is operand
+(IMP) Accumulator       A       A reg is operand (basically implied)
 
 (IMP) Implied           i       implied (TXA)
 
@@ -144,7 +152,7 @@ TXS     transfer X to stack pointer
 TYA     transfer Y to accumulator
 
 # Arithmetic
-ADC ....    add with carry
+ADC     add with carry
 SBC ....    subtract with carry
 INC     increment
 INX     increment X
@@ -160,7 +168,7 @@ LSR     logical shift right
 ROL     rotate left
 ROR     rotate right
 
-# Comparison 
+# Comparison
 BIT ....    bit test
 CMP ....    compare (with accumulator)
 CPX ....    compare with X

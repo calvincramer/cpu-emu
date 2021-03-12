@@ -1,5 +1,7 @@
 # All build directories
 build/
+build-debug/
+build-optim/
 
 # Project folders
 .vs/
