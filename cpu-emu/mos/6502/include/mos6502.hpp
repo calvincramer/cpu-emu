@@ -63,7 +63,7 @@ namespace mos6502 {
         u8 sub(u8 op1, u8 op2) {
             u8 val = op1 - op2 - SR.C;
             SR.V = (signBit(A) != signBit(val));
-            SR.C = SR.V;
+            SR.C = !SR.V;   // Cleared if overflow
             return val;
         }
 
@@ -191,7 +191,7 @@ namespace mos6502 {
             }
         }
 
-        // AND, EOR, ORA
+        // AND, EOR, ORA, ADC, SBC
         inline void arith(u8 (CPU::*mathOpFunc)(u8, u8)) {
             avo avo_ret = addr_mode_get(am);
             A = (this->*mathOpFunc)(A, avo_ret.val);

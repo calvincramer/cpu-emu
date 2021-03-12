@@ -54,6 +54,7 @@ class LSR           : public SetupCPU_F {};
 class ROL           : public SetupCPU_F {};
 class ROR           : public SetupCPU_F {};
 class ADC           : public SetupCPU_F {};
+class SBC           : public SetupCPU_F {};
 
 TEST_F(Api, Reset) { cpu.reset(); }
 TEST_F(Api, Execute) { cpu.execute(0); }
@@ -1362,4 +1363,151 @@ TEST_F(ADC, IndirectY) {
     cpu[0x1326] = 0x55;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu.A == 0x85);
+}
+
+
+// SBC
+TEST_F(SBC, Immediate) {
+    cpu[RESET_LOC] = SBC_IMM;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu.A = 0x30;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x1E);
+}
+TEST_F(SBC, ImmediateZeroFlag) {
+    cpu[RESET_LOC] = SBC_IMM;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu.A = 0x12;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x0);
+    ASSERT_TRUE(cpu.flag_zero() == F_ZERO);
+}
+TEST_F(SBC, ImmediateNegativeFlag) {
+    cpu[RESET_LOC] = SBC_IMM;
+    cpu[RESET_LOC + 1] = 0x13;
+    cpu.A = 0x12;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0xFF);
+    ASSERT_TRUE(cpu.flag_negative() == F_NEG);
+}
+TEST_F(SBC, ImmediateCarryFlag) {
+    cpu[RESET_LOC] = SBC_IMM;
+    cpu[RESET_LOC + 1] = 0x13;
+    cpu.A = 0x12;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0xFF);
+    ASSERT_TRUE(cpu.flag_carry() == F_NO_CARRY);
+}
+TEST_F(SBC, ImmediateWithCarryEnabled) {
+    cpu[RESET_LOC] = SBC_IMM;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu.A = 0x30;
+    cpu.SR.C = 1;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x1D);
+}
+TEST_F(SBC, ZeroPage) {
+    cpu[RESET_LOC] = SBC_ZPG;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu[0x12] = 0x40;
+    cpu.A = 0x50;
+    ASSERT_TRUE(cpu.execute(3) == 3);
+    ASSERT_TRUE(cpu.A == 0x10);
+}
+TEST_F(SBC, ZeroPageX) {
+    cpu[RESET_LOC] = SBC_ZPX;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu[0x22] = 0x40;
+    cpu.A = 0x50;
+    cpu.X = 0x10;
+    ASSERT_TRUE(cpu.execute(4) == 4);
+    ASSERT_TRUE(cpu.A == 0x10);
+}
+TEST_F(SBC, Absolute) {
+    cpu[RESET_LOC] = SBC_ABS;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu[0x1234] = 0x40;
+    cpu.A = 0x50;
+    ASSERT_TRUE(cpu.execute(4) == 4);
+    ASSERT_TRUE(cpu.A == 0x10);
+}
+TEST_F(SBC, AbsoluteX) {
+    // No page cross
+    cpu[RESET_LOC] = SBC_ABX;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu.X = 0x10;
+    cpu[0x1244] = 0x40;
+    cpu.A = 0x50;
+    ASSERT_TRUE(cpu.execute(4) == 4);
+    ASSERT_TRUE(cpu.A == 0x10);
+
+    // Page cross
+    cpu.reset();
+    cpu[RESET_LOC] = SBC_ABX;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu.X = 0xFF;
+    cpu[0x1333] = 0x40;
+    cpu.A = 0x50;
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu.A == 0x10);
+}
+TEST_F(SBC, AbsoluteY) {
+    // No page cross
+    cpu[RESET_LOC] = SBC_ABY;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu.Y = 0x11;
+    cpu[0x1245] = 0x40;
+    cpu.A = 0x50;
+    ASSERT_TRUE(cpu.execute(4) == 4);
+    ASSERT_TRUE(cpu.A == 0x10);
+
+    // Page cross
+    cpu.reset();
+    cpu[RESET_LOC] = SBC_ABY;
+    cpu[RESET_LOC + 1] = 0x34;
+    cpu[RESET_LOC + 2] = 0x12;
+    cpu.Y = 0xF0;
+    cpu[0x1324] = 0x40;
+    cpu.A = 0x50;
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu.A == 0x10);
+}
+TEST_F(SBC, IndirectX) {
+    cpu[RESET_LOC] = SBC_IDX;
+    cpu[RESET_LOC + 1] = 0x10;
+    cpu.X = 0x5;
+    cpu[0x0015] = 0x34;
+    cpu[0x0016] = 0x12;
+    cpu.A = 0x50;
+    cpu[0x1234] = 0x40;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu.A == 0x10);
+}
+TEST_F(SBC, IndirectY) {
+    // No page cross
+    cpu[RESET_LOC] = SBC_IDY;
+    cpu[RESET_LOC + 1] = 0x10;
+    cpu.Y = 0x5;
+    cpu[0x0010] = 0x34;
+    cpu[0x0011] = 0x12;
+    cpu.A = 0x50;
+    cpu[0x1239] = 0x40;
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu.A == 0x10);
+
+    // Page cross
+    cpu.reset();
+    cpu[RESET_LOC] = SBC_IDY;
+    cpu[RESET_LOC + 1] = 0x10;
+    cpu.Y = 0xF2;
+    cpu[0x0010] = 0x34;
+    cpu[0x0011] = 0x12;
+    cpu.A = 0x50;
+    cpu[0x1326] = 0x40;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu.A == 0x10);
 }
