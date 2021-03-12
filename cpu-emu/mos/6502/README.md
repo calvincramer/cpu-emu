@@ -1,5 +1,14 @@
 # MOS 6502
 
+## Build
+```sh
+cd <repo>/cpu-emu/mos/6502
+mkdir build
+cd build
+cmake ..
+make
+```
+
 ## Links
 
 * Main: http://www.obelisk.me.uk/6502/
