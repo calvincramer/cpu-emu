@@ -24,9 +24,9 @@ class SetupCPU_F : public ::testing::Test {
     CPU cpu;
     CPU cpuOrig;
 
-    SetupCPU_F()            {} 
+    SetupCPU_F()            {}
     ~SetupCPU_F()           {}
-    virtual void SetUp()    { 
+    virtual void SetUp()    {
         cpu.reset();
         cpuOrig = cpu;
     }
@@ -53,6 +53,7 @@ class ASL           : public SetupCPU_F {};
 class LSR           : public SetupCPU_F {};
 class ROL           : public SetupCPU_F {};
 class ROR           : public SetupCPU_F {};
+class ADC           : public SetupCPU_F {};
 
 TEST_F(Api, Reset) { cpu.reset(); }
 TEST_F(Api, Execute) { cpu.execute(0); }
@@ -104,7 +105,7 @@ void load_zero_page(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles, u8* offsetR
     // Negative
     cpu.reset();
     cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x50; 
+    cpu[RESET_LOC + 1] = 0x50;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu[0x50 + offsetVal] = 0xFF;
     common_load_execute(cpu, cycles, cycles, loadToReg, 0xFF, F_NON_ZERO, F_NEG);
@@ -126,7 +127,7 @@ void load_absolute(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles, u8* offsetRe
     // Zero
     cpu[RESET_LOC] = loadInst;
     cpu[RESET_LOC + 1] = 0x21;
-    cpu[RESET_LOC + 2] = 0x43; 
+    cpu[RESET_LOC + 2] = 0x43;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu[0x4321 + offsetVal] = 0x0;
     common_load_execute(cpu, cycles, cycles, loadToReg, 0x0, F_ZERO, F_NON_NEG);
@@ -397,7 +398,7 @@ TEST_F(TRANSFER, TransferY_to_A) { transfer_common(cpu, TYA_IMP, cpu.Y, cpu.A, t
 
 
 // No op
-TEST_F(NOP, MultipleNoOp) { 
+TEST_F(NOP, MultipleNoOp) {
     cpu[RESET_LOC] = NOP_IMP;
     cpu[RESET_LOC + 1] = NOP_IMP;
     ASSERT_TRUE(cpu.execute(4) == 4);
@@ -406,7 +407,7 @@ TEST_F(NOP, MultipleNoOp) {
 
 
 // Clear flags
-TEST_F(CLEAR_FLAGS, ClearDifferentFlags) { 
+TEST_F(CLEAR_FLAGS, ClearDifferentFlags) {
     // Carry
     cpu[RESET_LOC] = CLC_IMP;
     cpu.SR.C = 1;
@@ -437,7 +438,7 @@ TEST_F(CLEAR_FLAGS, ClearDifferentFlags) {
 
 
 // Set flags
-TEST_F(SET_FLAGS, SetDifferentFlags) { 
+TEST_F(SET_FLAGS, SetDifferentFlags) {
     // Carry
     cpu[RESET_LOC] = SEC_IMP;
     cpu.SR.C = 0;
@@ -1215,3 +1216,52 @@ TEST_F(ROR, AbsoluteX) {
     ASSERT_TRUE(cpu.execute(7) == 7);
     ASSERT_TRUE(cpu[0x1235] == 0xF0);
 }
+
+
+// ADC
+TEST_F(ADC, Immediate) {
+    cpu[RESET_LOC] = ADC_IMM;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu.A = 0x30;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x42);
+}
+TEST_F(ADC, ImmediateZeroFlag) {
+    cpu[RESET_LOC] = ADC_IMM;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu.A = 0xEE;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x0);
+    ASSERT_TRUE(cpu.flag_zero() == F_ZERO);
+}
+TEST_F(ADC, ImmediateNegativeFlag) {
+    cpu[RESET_LOC] = ADC_IMM;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu.A = 0xE0;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0xF2);
+    ASSERT_TRUE(cpu.flag_negative() == F_NEG);
+}
+TEST_F(ADC, ImmediateCarryFlag) {
+    cpu[RESET_LOC] = ADC_IMM;
+    cpu[RESET_LOC + 1] = 0xEF;
+    cpu.A = 0x10;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0xFF);
+    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
+}
+TEST_F(ADC, ImmediateWithCarryEnabled) {
+    cpu[RESET_LOC] = ADC_IMM;
+    cpu[RESET_LOC + 1] = 0x12;
+    cpu.A = 0x30;
+    cpu.SR.C = 1;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x43);
+}
+TEST_F(ADC, ZeroPage) {}
+TEST_F(ADC, ZeroPageX) {}
+TEST_F(ADC, Absolute) {}
+TEST_F(ADC, AbsoluteX) {}
+TEST_F(ADC, AbsoluteY) {}
+TEST_F(ADC, IndirectX) {}
+TEST_F(ADC, IndirectY) {}

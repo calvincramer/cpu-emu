@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// typedefs 
+// typedefs
 typedef bool            u1;
 typedef std::uint8_t    u8;
 typedef std::uint16_t   u16;
@@ -13,8 +13,10 @@ typedef std::int8_t     s8;
 // Bytes to Wyde
 inline u16 B2W(u8 low, u8 high) { return (high << 8) + low; }
 
-inline u8 lowByte(u16 x)  { return x & 0x0F; }
+inline u8 lowByte(u16 x)  { return x &  0x0F; }
 inline u8 highByte(u16 x) { return x >> 8; }
+inline u1 signBit(u8 x)   { return x >> 7; }
+inline u1 lowBit(u8 x)    { return x &  0x01;}
 
 namespace mos6502 {
     // Constants
@@ -24,57 +26,63 @@ namespace mos6502 {
     class CPU {
      private:
         inline u8 getCurrentInstr() { return this->ram[this->PC]; }
-        
+
         inline void set_ZN_flags(u8 val) {
             SR.Z = (val == 0);
-            SR.N = ((val & 0b10000000) != 0);
+            SR.N = ((signBit(val)) != 0);
         }
 
         // Arithmetic functions
         u8 bitwise_and(u8 op1, u8 op2) { return op1 & op2; }
         u8 bitwise_eor(u8 op1, u8 op2) { return op1 ^ op2; }
         u8 bitwise_or(u8 op1, u8 op2)  { return op1 | op2; }
+        u8 add(u8 op1, u8 op2) {
+            u8 val = op1 + op2 + SR.C;
+            SR.V = (signBit(A) != signBit(val));
+            SR.C = SR.V;
+            return val;
+        }
         void shift_left(u8& op) {        // Arithmetic shift left by 1
-            SR.C = (op & 0b10000000) != 0;
+            SR.C = (signBit(op)) != 0;
             op = op << 1;
         }
         void shift_right(u8& op) {       // Logical shift right by 1
-            SR.C = op & 0b00000001;
+            SR.C = lowBit(op);
             op = op >> 1;
         }
         void rotate_left(u8& op) {      // Rotate left by 1
-            SR.C = (op & 0b10000000) != 0;
+            SR.C = (signBit(op)) != 0;
             op = (op << 1) + SR.C;
         }
         void rotate_right(u8& op) {     // Rotate right by 1
-            SR.C = op & 0b00000001;
+            SR.C = lowBit(op);
             op = (op >> 1) + (SR.C << 7);
         }
 
         struct av_pair { u16 addr; u8 val; };
 
         // Addressing modes (some cover multiple modes with an offset)
-        av_pair addr_mode_get_imp(__attribute__((unused)) u8 _) { 
-            return { 0xFFFF, 0xFF };    // Implied register 
+        av_pair addr_mode_get_imp(__attribute__((unused)) u8 _) {
+            return { 0xFFFF, 0xFF };    // Implied register
         }
-        av_pair addr_mode_get_imm(__attribute__((unused)) u8 _) { 
-            return { 0xFFFF, ram[PC + 1] }; 
+        av_pair addr_mode_get_imm(__attribute__((unused)) u8 _) {
+            return { 0xFFFF, ram[PC + 1] };
         }
-        av_pair addr_mode_get_zp(u8 offset) { 
+        av_pair addr_mode_get_zp(u8 offset) {
             u8 addr = (u8) (ram[PC+1] + offset);
-            return { addr, ram[addr] }; 
+            return { addr, ram[addr] };
         }
-        av_pair addr_mode_get_abs(u8 offset) { 
+        av_pair addr_mode_get_abs(u8 offset) {
             u16 addr = B2W(ram[PC+1], ram[PC+2]) + offset;
-            return { addr, ram[addr] }; 
+            return { addr, ram[addr] };
         }
-        av_pair addr_mode_get_indexed_indirect(u8 offset) { 
+        av_pair addr_mode_get_indexed_indirect(u8 offset) {
             u16 addr = B2W(ram[(u8) (ram[PC+1] + offset)], ram[(u8) (ram[PC+1] + offset + 1)]);
             return { addr, ram[addr] };
         }
-        av_pair addr_mode_get_indirect_indexed(u8 offset) { 
-            u16 addr = offset + B2W(ram[ram[PC+1]], ram[(u8) (ram[PC+1] + 1)]); 
-            return { addr, ram[addr] }; 
+        av_pair addr_mode_get_indirect_indexed(u8 offset) {
+            u16 addr = offset + B2W(ram[ram[PC+1]], ram[(u8) (ram[PC+1] + 1)]);
+            return { addr, ram[addr] };
         }
 
         enum AddrMode {
@@ -102,7 +110,7 @@ namespace mos6502 {
         inline av_pair addr_mode_get(AddrMode am, u8 offset = 0) { return (this->*addr_mode_funcs[am])(offset); }
 
 
-        inline void load(AddrMode am, u8& reg, u8 offset = 0) { 
+        inline void load(AddrMode am, u8& reg, u8 offset = 0) {
             av_pair av_p = addr_mode_get(am, offset);
             reg = av_p.val;
             if (am == ABX || am == ABY || am == IDY) {
@@ -151,7 +159,7 @@ namespace mos6502 {
 
      public:
         // Internal state
-        u8 ram[MEM_MAX];    // 64 KiB random access memory (max addressable memory) 
+        u8 ram[MEM_MAX];    // 64 KiB random access memory (max addressable memory)
         // All registers
         u16 PC;         // program counter
         u8  A;          // accumulator register (aka 'A')
@@ -177,6 +185,12 @@ namespace mos6502 {
         void reset();
         u32 execute(u32 numCycles);
         u8& operator[] (u16 i) { return this->ram[i]; }
+
+        // Helper method for accessing flags
+        inline u1 flag_carry()      { return this->SR.C; }
+        inline u1 flag_zero()       { return this->SR.Z; }
+        inline u1 flag_overflow()   { return this->SR.V; }
+        inline u1 flag_negative()   { return this->SR.N; }
     };
 
     enum Instructions : u8 {
@@ -195,7 +209,7 @@ namespace mos6502 {
         AND_IMM = 0x29, AND_ZPG = 0x25, AND_ZPX = 0x35, AND_ABS = 0x2D, AND_ABX = 0x3D, AND_ABY = 0x39, AND_IDX = 0x21, AND_IDY = 0x31,
         EOR_IMM = 0x49, EOR_ZPG = 0x45, EOR_ZPX = 0x55, EOR_ABS = 0x4D, EOR_ABX = 0x5D, EOR_ABY = 0x59, EOR_IDX = 0x41, EOR_IDY = 0x51,
         ORA_IMM = 0x09, ORA_ZPG = 0x05, ORA_ZPX = 0x15, ORA_ABS = 0x0D, ORA_ABX = 0x1D, ORA_ABY = 0x19, ORA_IDX = 0x01, ORA_IDY = 0x11,
-        ASL_IMP = 0x0A, ASL_ZPG = 0x06, ASL_ZPX = 0x16, ASL_ABS = 0x0E, ASL_ABX = 0x1E, 
+        ASL_IMP = 0x0A, ASL_ZPG = 0x06, ASL_ZPX = 0x16, ASL_ABS = 0x0E, ASL_ABX = 0x1E,
         LSR_IMP = 0x4A, LSR_ZPG = 0x46, LSR_ZPX = 0x56, LSR_ABS = 0x4E, LSR_ABX = 0x5E,
         ROL_IMP = 0x2A, ROL_ZPG = 0x26, ROL_ZPX = 0x36, ROL_ABS = 0x2E, ROL_ABX = 0x3E,
         ROR_IMP = 0x6A, ROR_ZPG = 0x66, ROR_ZPX = 0x76, ROR_ABS = 0x6E, ROR_ABX = 0x7E,

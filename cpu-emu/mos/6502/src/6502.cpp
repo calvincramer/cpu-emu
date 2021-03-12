@@ -1,5 +1,5 @@
 /*
-Emulate the MOS 6502 cpu 
+Emulate the MOS 6502 cpu
 */
 
 #include <cstdio>
@@ -9,7 +9,7 @@ Emulate the MOS 6502 cpu
 
 void mos6502::CPU::reset() {
     // Clear RAM
-    for (u32 i = 0; i < MEM_MAX; ++i) 
+    for (u32 i = 0; i < MEM_MAX; ++i)
         ram[i] = 0;
     // Reset registers
     PC = RESET_LOC;
@@ -138,24 +138,23 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
             case ROR_ZPX : shift_rot(ZPX, &CPU::rotate_right, X);   break;
             case ROR_ABS : shift_rot(ABS, &CPU::rotate_right);      break;
             case ROR_ABX : shift_rot(ABX, &CPU::rotate_right, X);   break;
+            case ADC_IMM : arith(IMM, &CPU::add);                   break;
+            case ADC_ZPG : arith(ZPG, &CPU::add);                   break;
+            case ADC_ZPX : arith(ZPX, &CPU::add, X);                break;
+            case ADC_ABS : arith(ABS, &CPU::add);                   break;
+            case ADC_ABX : arith(ABX, &CPU::add, X);                break;
+            case ADC_ABY : arith(ABY, &CPU::add, Y);                break;
+            case ADC_IDX : arith(IDX, &CPU::add, X);                break;
+            case ADC_IDY : arith(IDY, &CPU::add, Y);                break;
+            case SBC_IMM :  break;
+            case SBC_ZPG :  break;
+            case SBC_ZPX :  break;
+            case SBC_ABS :  break;
+            case SBC_ABX :  break;
+            case SBC_ABY :  break;
+            case SBC_IDX :  break;
+            case SBC_IDY :  break;
 
-            case ADC_IMM : /* TODO */ break;
-            case ADC_ZPG : /* TODO */ break;
-            case ADC_ZPX : /* TODO */ break;
-            case ADC_ABS : /* TODO */ break;
-            case ADC_ABX : /* TODO */ break;
-            case ADC_ABY : /* TODO */ break;
-            case ADC_IDX : /* TODO */ break;
-            case ADC_IDY : /* TODO */ break;
-            case SBC_IMM : /* TODO */ break;
-            case SBC_ZPG : /* TODO */ break;
-            case SBC_ZPX : /* TODO */ break;
-            case SBC_ABS : /* TODO */ break;
-            case SBC_ABX : /* TODO */ break;
-            case SBC_ABY : /* TODO */ break;
-            case SBC_IDX : /* TODO */ break;
-            case SBC_IDY : /* TODO */ break;
-            
             // Invalid instruction
             default: {
                 printf("BAD INSTRUCTION!!!!!!!!!!!!!!\n");
@@ -164,7 +163,7 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
             }
         }
         numCycles -= NUM_CYCLES_BASE[currentInstr];
-        PC += INSTR_BYTES[currentInstr];    
+        PC += INSTR_BYTES[currentInstr];
     }
     return numCyclesSave - numCycles;
 }

@@ -40,6 +40,8 @@ $FFFE, $FFFF ... IRQ (Interrupt Request) vector
 
 * instructions are variable width.
 
+* "Very conveniently, the 6502 can add and subtract unsigned numbers using the ADC and SBC instructions." http://www.6502.org/tutorials/vflag.html
+
 
 ## Memory layout
 
