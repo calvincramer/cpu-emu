@@ -32,7 +32,7 @@ namespace mos6502 {
         ABS = 5,    // absolute memory address
         ABX = 6,    // absolute memory address offset X
         ABY = 7,    // absolute memory address offset Y
-        IND = 8,    // indirect (only JMP uses)
+        IND = 8,    // indirect (only JMP uses) (aka absolute indirect)
         IDX = 9,    // indexed indirect addressing offset X
         IDY = 10,   // indirect indexed addressing offset Y
         ACC = 11,   // accumulator register
@@ -123,7 +123,13 @@ namespace mos6502 {
             return { addr, ram[addr], Y };
         }
         avo addr_mode_get_indirect() {
+#if 1
+            /* ORIGINAL 6502 BAD HANDLING ON xxFF BOUNDARY */
             return { 0x0, 0x0, 0x0 };   // TODO
+#else
+            /* LATER MODELS LIKE 65SC02 FIXED THIS */
+            // TODO
+#endif
         }
         avo addr_mode_get_indexed_indirect() {
             u16 addr = B2W(ram[(u8) (ram[PC+1] + X)], ram[(u8) (ram[PC+1] + X + 1)]);

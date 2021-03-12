@@ -101,6 +101,14 @@ The addressing mode determines the operand of the instruction
 
 (ABY) Absolute, y       a,y
 
+(IND) Absolute indirect (a)     used by JMP to get 16 bit value -> JMP ($A001) jumps to value at $A001 + ($A002 << 8)
+                                Weird behavior:
+                                    0x3000: 0x40
+                                    0x30FF: 0x80
+                                    0x3100: 0x50
+                                    JMP ($30FF) jumps to 0x4080 rather than expected 0x5080.
+                                        Low byte is correct
+                                        High byte wraps back to 0x3000 rather than increase to 0x3100
 
 (IDX) (Indirect, x)     (aka indexed indirect)
                         operand is zero-page address
@@ -114,7 +122,7 @@ The addressing mode determines the operand of the instruction
 (REL) relative          r       PC + offset (BPL $2D)
 
 
-Absolute indirect       (a)     used by JMP to get 16 bit value -> JMP ($A001) jumps to value at $A001 + ($A002 << 8)
+
 
 Notes:
 * Zero-page, x will wrap around 8 bit value (LDA $FF,X when X is 1 will load $0 into A)
@@ -204,11 +212,11 @@ NOP     no operation
 
 * Varies between assemblers
 ```c
-// Binary
+// Binary #%
 %00001111       LDA #%0001
-// Hexadecimal
+// Hexadecimal #$
 $FA             LDA #$0E
-// Decimal
+// Decimal #
 123             LDA #123
 ```
 
