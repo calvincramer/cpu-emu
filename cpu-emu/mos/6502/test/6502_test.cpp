@@ -13,6 +13,9 @@ using namespace mos6502;
 #define F_YES_CARRY 1
 #define F_NO_CARRY 0
 
+#define F_YES_OVERFLOW 1
+#define F_NO_OVERFLOW 0
+
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
@@ -55,6 +58,7 @@ class ROL           : public SetupCPU_F {};
 class ROR           : public SetupCPU_F {};
 class ADC           : public SetupCPU_F {};
 class SBC           : public SetupCPU_F {};
+class BIT           : public SetupCPU_F {};
 
 TEST_F(Api, Reset) { cpu.reset(); }
 TEST_F(Api, Execute) { cpu.execute(0); }
@@ -1510,4 +1514,42 @@ TEST_F(SBC, IndirectY) {
     cpu[0x1326] = 0x40;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu.A == 0x10);
+}
+
+
+// BIT
+TEST_F(BIT, ZeroPage) {
+    // Zero
+    cpu.reset();
+    cpu[RESET_LOC] = BIT_ZPG;
+    cpu[RESET_LOC + 1] = 0x15;
+    cpu[0x15] = 0xF3;   // 0b 1111 0011
+    cpu.A = 0x0C;       // 0b 0000 1100
+    ASSERT_TRUE(cpu.execute(3) == 3);
+    ASSERT_TRUE(cpu.flag_zero() == F_ZERO);
+    ASSERT_TRUE(cpu.flag_overflow() == F_NO_OVERFLOW);
+    ASSERT_TRUE(cpu.flag_negative() == F_NON_NEG);
+
+    // Not zero
+    cpu.reset();
+    cpu[RESET_LOC] = BIT_ZPG;
+    cpu[RESET_LOC + 1] = 0x15;
+    cpu[0x15] = 0xF3;   // 0b 1111 0011
+    cpu.A = 0x99;       // 0b 1001 1001
+    ASSERT_TRUE(cpu.execute(3) == 3);   // Anded value should be 0b 1001 0001
+    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.flag_overflow() == F_NO_OVERFLOW);
+    ASSERT_TRUE(cpu.flag_negative() == F_NEG);
+}
+TEST_F(BIT, Absolute) {
+    cpu.reset();
+    cpu[RESET_LOC] = BIT_ABS;
+    cpu[RESET_LOC + 1] = 0x15;
+    cpu[RESET_LOC + 2] = 0x14;
+    cpu[0x1415] = 0xF3;     // 0b 1111 0011
+    cpu.A = 0x99;           // 0b 1001 1001
+    ASSERT_TRUE(cpu.execute(4) == 4);   // Anded value should be 0b 1001 0001
+    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.flag_overflow() == F_NO_OVERFLOW);
+    ASSERT_TRUE(cpu.flag_negative() == F_NEG);
 }

@@ -34,8 +34,11 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
     u8 currentInstr;
 
     while (numCycles > 0) {
+        // Get instruction and some common information needed when executing instruction
         currentInstr = getCurrentInstr();
         am = INSTR_GET_ADDR_MODE[currentInstr];
+        avo_ret = addr_mode_get(am);
+
         // Execute instruction
         switch (currentInstr) {
             case LDA_IMM: case LDA_ZPG: case LDA_ZPX: case LDA_ABS: case LDA_ABX: case LDA_ABY: case LDA_IDX: case LDA_IDY :
@@ -90,6 +93,8 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
                 arith(&CPU::add);                                               break;
             case SBC_IMM: case SBC_ZPG: case SBC_ZPX: case SBC_ABS: case SBC_ABX: case SBC_ABY: case SBC_IDX: case SBC_IDY:
                 arith(&CPU::sub);                                               break;
+            case BIT_ZPG: case BIT_ABS:
+                bit();                                                          break;
 
             // Invalid instruction
             default: {

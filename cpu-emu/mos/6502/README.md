@@ -153,7 +153,7 @@ TYA     transfer Y to accumulator
 
 # Arithmetic
 ADC     add with carry
-SBC ....    subtract with carry
+SBC     subtract with carry
 INC     increment
 INX     increment X
 INY     increment Y
@@ -169,7 +169,7 @@ ROL     rotate left
 ROR     rotate right
 
 # Comparison
-BIT ....    bit test
+BIT     bit test
 CMP ....    compare (with accumulator)
 CPX ....    compare with X
 CPY ....    compare with Y

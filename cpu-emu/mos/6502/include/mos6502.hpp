@@ -162,7 +162,6 @@ namespace mos6502 {
 
 
         inline void load(u8& reg) {
-            avo avo_ret = addr_mode_get(am);
             reg = avo_ret.val;
             if (am == ABX || am == ABY || am == IDY) {
                 numCycles -= (highByte(avo_ret.addr) != highByte(avo_ret.addr - avo_ret.offset));
@@ -171,7 +170,6 @@ namespace mos6502 {
         }
 
         inline void store(u8& reg) {
-            avo avo_ret = addr_mode_get(am);
             ram[avo_ret.addr] = reg;
         }
 
@@ -185,7 +183,6 @@ namespace mos6502 {
                 *impReg += val;
                 set_ZN_flags(*impReg);
             } else {
-                avo avo_ret = addr_mode_get(am);
                 ram[avo_ret.addr] += val;
                 set_ZN_flags(ram[avo_ret.addr]);
             }
@@ -193,7 +190,6 @@ namespace mos6502 {
 
         // AND, EOR, ORA, ADC, SBC
         inline void arith(u8 (CPU::*mathOpFunc)(u8, u8)) {
-            avo avo_ret = addr_mode_get(am);
             A = (this->*mathOpFunc)(A, avo_ret.val);
             if (am == ABX || am == ABY || am == IDY) {
                 numCycles -= (highByte(avo_ret.addr) != highByte(avo_ret.addr - avo_ret.offset));
@@ -203,14 +199,22 @@ namespace mos6502 {
 
         // ASL, LSR, ROL, ROR
         inline void shift_rot(void (CPU::*mathShiftFunc)(u8&)) {
-            u8& toShift = (am == ACC) ? A : ram[addr_mode_get(am).addr];
+            u8& toShift = (am == ACC) ? A : ram[avo_ret.addr];
             (this->*mathShiftFunc)(toShift);
             set_ZN_flags(toShift);
         }
 
+        inline void bit() {
+            u8 and_res = avo_ret.val & A;
+            SR.Z = (and_res == 0);
+            SR.V = (and_res & 0b01000000) != 0;
+            SR.N = (and_res & 0b10000000) != 0;
+        }
+
         // For execute() function, so we don't need to pass it around so much
-        u32 numCycles;
-        AddrMode am;
+        u32 numCycles;  // Number of cycles left to execute
+        AddrMode am;    // Address mode of current instruction
+        avo avo_ret;    // address, val of addr, offset from current address mode
 
      public:
         // Internal state
@@ -267,6 +271,7 @@ namespace mos6502 {
         ROR_ACC = 0x6A, ROR_ZPG = 0x66, ROR_ZPX = 0x76, ROR_ABS = 0x6E, ROR_ABX = 0x7E,
         ADC_IMM = 0x69, ADC_ZPG = 0x65, ADC_ZPX = 0x75, ADC_ABS = 0x6D, ADC_ABX = 0x7D, ADC_ABY = 0x79, ADC_IDX = 0x61, ADC_IDY = 0x71,
         SBC_IMM = 0xE9, SBC_ZPG = 0xE5, SBC_ZPX = 0xF5, SBC_ABS = 0xED, SBC_ABX = 0xFD, SBC_ABY = 0xF9, SBC_IDX = 0xE1, SBC_IDY = 0xF1,
+        BIT_ZPG = 0x24, BIT_ABS = 0x2C,
     };
 
     const AddrMode INSTR_GET_ADDR_MODE [256] = {
