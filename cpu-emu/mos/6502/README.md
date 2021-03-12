@@ -170,11 +170,11 @@ ROR     rotate right
 
 # Comparison
 BIT     bit test
-CMP ....    compare (with accumulator)
-CPX ....    compare with X
-CPY ....    compare with Y
+CMP     compare (with accumulator)
+CPX     compare with X
+CPY     compare with Y
 
-# Branch
+# Branching
 BCC ....    branch on carry clear
 BCS ....    branch on carry set
 BEQ ....    branch on equal (zero set)

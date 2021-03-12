@@ -211,6 +211,13 @@ namespace mos6502 {
             SR.N = (and_res & 0b10000000) != 0;
         }
 
+        // CMP, CPX, CPY
+        inline void cmp(u8& reg) {
+            SR.C = (reg >= avo_ret.val);
+            SR.Z = (reg == avo_ret.val);
+            SR.N = signBit(reg - avo_ret.val);
+        }
+
         // For execute() function, so we don't need to pass it around so much
         u32 numCycles;  // Number of cycles left to execute
         AddrMode am;    // Address mode of current instruction
@@ -272,6 +279,9 @@ namespace mos6502 {
         ADC_IMM = 0x69, ADC_ZPG = 0x65, ADC_ZPX = 0x75, ADC_ABS = 0x6D, ADC_ABX = 0x7D, ADC_ABY = 0x79, ADC_IDX = 0x61, ADC_IDY = 0x71,
         SBC_IMM = 0xE9, SBC_ZPG = 0xE5, SBC_ZPX = 0xF5, SBC_ABS = 0xED, SBC_ABX = 0xFD, SBC_ABY = 0xF9, SBC_IDX = 0xE1, SBC_IDY = 0xF1,
         BIT_ZPG = 0x24, BIT_ABS = 0x2C,
+        CMP_IMM = 0xC9, CMP_ZPG = 0xC5, CMP_ZPX = 0xD5, CMP_ABS = 0xCD, CMP_ABX = 0xDD, CMP_ABY = 0xD9, CMP_IDX = 0xC1, CMP_IDY = 0xD1,
+        CPX_IMM = 0xE0, CPX_ZPG = 0xE4, CPX_ABS = 0xEC,
+        CPY_IMM = 0xC0, CPY_ZPG = 0xC4, CPY_ABS = 0xCC,
     };
 
     const AddrMode INSTR_GET_ADDR_MODE [256] = {

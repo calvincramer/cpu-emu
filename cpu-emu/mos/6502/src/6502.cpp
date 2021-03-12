@@ -95,6 +95,12 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
                 arith(&CPU::sub);                                               break;
             case BIT_ZPG: case BIT_ABS:
                 bit();                                                          break;
+            case CMP_IMM: case CMP_ZPG: case CMP_ZPX: case CMP_ABS: case CMP_ABX: case CMP_ABY: case CMP_IDX: case CMP_IDY:
+                cmp(A);                                                         break;
+            case CPX_IMM: case CPX_ZPG: case CPX_ABS:
+                cmp(X);                                                         break;
+            case CPY_IMM: case CPY_ZPG: case CPY_ABS:
+                cmp(Y);                                                         break;
 
             // Invalid instruction
             default: {
