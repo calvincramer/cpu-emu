@@ -101,6 +101,8 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
                 cmp(X);                                                         break;
             case CPY_IMM: case CPY_ZPG: case CPY_ABS:
                 cmp(Y);                                                         break;
+            case JMP_ABS: case JMP_IND:
+                jmp();                                                          break;
 
             // Invalid instruction
             default: {

@@ -24,4 +24,7 @@ sudo cp lib/*.a /usr/lib
 # Python3
 # Under /usr/bin/python3
 # Used python3 3.8.5. Make work with older versions, not tested though.
+
+# gdb to debug
+sudo apt-get install gdb
 ```

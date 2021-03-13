@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "models.hpp"
+
 // typedefs
 typedef bool            u1;
 typedef std::uint8_t    u8;
@@ -123,13 +125,18 @@ namespace mos6502 {
             return { addr, ram[addr], Y };
         }
         avo addr_mode_get_indirect() {
-#if 1
-            /* ORIGINAL 6502 BAD HANDLING ON xxFF BOUNDARY */
-            return { 0x0, 0x0, 0x0 };   // TODO
+            u8 low = ram[PC+1];
+            u8 high = ram[PC+2];
+            u16 deref_low = ram[B2W(low, high)];
+#if CPU_MODEL==MODEL_6502
+            /* Original 6502 handled xxFF boundary incorrectly (wraps without updating high byte) */
 #else
-            /* LATER MODELS LIKE 65SC02 FIXED THIS */
-            // TODO
+            /* Later models like 65SC02 fixed this */
+            high += (low == 0xFF);
 #endif
+            low = (u8) (low + 1);
+            u16 deref_high = ram[B2W(low, high)];
+            return { B2W(deref_low, deref_high), 0, 0 };  // Don't need to read addr in memory, just need addr
         }
         avo addr_mode_get_indexed_indirect() {
             u16 addr = B2W(ram[(u8) (ram[PC+1] + X)], ram[(u8) (ram[PC+1] + X + 1)]);
@@ -224,6 +231,10 @@ namespace mos6502 {
             SR.N = signBit(reg - avo_ret.val);
         }
 
+        inline void jmp() {
+            PC = avo_ret.addr;
+        }
+
         // For execute() function, so we don't need to pass it around so much
         u32 numCycles;  // Number of cycles left to execute
         AddrMode am;    // Address mode of current instruction
@@ -288,6 +299,7 @@ namespace mos6502 {
         CMP_IMM = 0xC9, CMP_ZPG = 0xC5, CMP_ZPX = 0xD5, CMP_ABS = 0xCD, CMP_ABX = 0xDD, CMP_ABY = 0xD9, CMP_IDX = 0xC1, CMP_IDY = 0xD1,
         CPX_IMM = 0xE0, CPX_ZPG = 0xE4, CPX_ABS = 0xEC,
         CPY_IMM = 0xC0, CPY_ZPG = 0xC4, CPY_ABS = 0xCC,
+        JMP_ABS = 0x4C, JMP_IND = 0x6C,
     };
 
     const AddrMode INSTR_GET_ADDR_MODE [256] = {
@@ -332,15 +344,16 @@ namespace mos6502 {
     };
 
     // Number of bytes for each instruction
+    // JMP set to 0 bytes, even though it's 3, because we affect the PC
     const u8 INSTR_BYTES [256] = {
     // -0                      -8
         1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 0-
         2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 1-
         3, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,    // 2-
         2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 3-
-        1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,    // 4-
+        1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 4-
         2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 5-
-        1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,    // 6-
+        1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 6-
         2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 7-
         0, 2, 0, 0, 2, 2, 2, 0, 1, 0, 1, 0, 3, 3, 3, 0,    // 8-
         2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 0, 3, 0, 0,    // 9-

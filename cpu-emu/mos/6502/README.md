@@ -191,7 +191,7 @@ BNE ....    branch on not equal (zero clear)
 BPL ....    branch on plus (negative clear)
 BVC ....    branch on overflow clear
 BVS ....    branch on overflow set
-JMP ....    jump
+JMP     jump
 JSR ....    jump subroutine
 RTS ....    return from subroutine
 
