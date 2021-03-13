@@ -250,14 +250,15 @@ namespace mos6502 {
 
         // Push onto stack
         inline void push(u8& reg) {
-            ram[S] = reg;
-            S -= 8;
+            ram[S + 0x0100] = reg;
+            S -= 1;
         }
 
         // Pull from stack
         inline void pull(u8& reg) {
-            S += 8;
-            reg = ram[S];
+            S += 1;
+            reg = ram[S + 0x0100];
+            // Need to clear stuff in stack?
         }
 
         // For execute() function, so we don't need to pass it around so much

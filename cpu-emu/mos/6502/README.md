@@ -183,10 +183,10 @@ CPX     compare with X
 CPY     compare with Y
 
 # Push / pop stack
-PHA ....    push accumulator
-PHP ....    push processor status (SR)
-PLA ....    pull accumulator
-PLP ....    pull processor status (SR)
+PHA     push accumulator
+PHP     push processor status (SR)
+PLA     pull accumulator
+PLP     pull processor status (SR)
 
 # Branching
 BCC ....    branch on carry clear
