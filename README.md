@@ -8,6 +8,9 @@
 * Develeoped on Ubuntu 20.04 (WSL2)
 * Packages:
 ```sh
+# g++ compiler
+sudo apt install build-essential
+
 # cmake
 sudo apt-get install cmake
 
