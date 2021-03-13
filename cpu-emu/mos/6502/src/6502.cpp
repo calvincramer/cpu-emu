@@ -16,14 +16,7 @@ void mos6502::CPU::reset() {
     A = 0;
     X = 0;
     Y = 0;
-    SR.C = 0;
-    SR.Z = 0;
-    SR.I = 0;
-    SR.D = 0;
-    SR.B = 0;
-    SR._ = 1;   // Apparently always high
-    SR.V = 0;
-    SR.N = 0;
+    SR = FLAG_INIT;
     S = 0;
 }
 
@@ -60,13 +53,13 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
             case TXS_IMP: transfer(X, S, false);                                break;
             case TYA_IMP: transfer(Y, A, true);                                 break;
             case NOP_IMP: /* do nothing */                                      break;
-            case CLC_IMP: SR.C = 0;                                             break;
-            case CLD_IMP: SR.D = 0;                                             break;
-            case CLI_IMP: SR.I = 0;                                             break;
-            case CLV_IMP: SR.V = 0;                                             break;
-            case SEC_IMP: SR.C = 1;                                             break;
-            case SED_IMP: SR.D = 1;                                             break;
-            case SEI_IMP: SR.I = 1;                                             break;
+            case CLC_IMP: set_flag_c(0);                                             break;
+            case CLD_IMP: set_flag_d(0);                                             break;
+            case CLI_IMP: set_flag_i(0);                                             break;
+            case CLV_IMP: set_flag_v(0);                                             break;
+            case SEC_IMP: set_flag_c(1);                                             break;
+            case SED_IMP: set_flag_d(1);                                             break;
+            case SEI_IMP: set_flag_i(1);                                             break;
             case INC_ZPG: case INC_ZPX: case INC_ABS: case INC_ABX:
                 inc_dec(1);                                                     break;
             case INX_IMP: inc_dec(1, &X);                                       break;
@@ -103,6 +96,10 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
                 cmp(Y);                                                         break;
             case JMP_ABS: case JMP_IND:
                 jmp();                                                          break;
+            case PHA_IMP: push(A);                                              break;
+            case PHP_IMP: push(SR);                                             break;
+            case PLA_IMP: pull(A);                                              break;
+            case PLP_IMP: pull(SR);                                             break;
 
             // Invalid instruction
             default: {

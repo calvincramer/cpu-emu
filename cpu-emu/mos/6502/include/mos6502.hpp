@@ -22,8 +22,21 @@ inline u1 lowBit(u8 x)    { return x &  0x01;}
 
 namespace mos6502 {
     // Constants
-    constexpr u16 RESET_LOC = 0xFFFD;   // Reset vector location
-    constexpr u32 MEM_MAX = 1 << 16;    // Max amount of memory
+    constexpr u32 MEM_MAX       = 1 << 16;  // Max amount of memory
+    constexpr u16 RESET_LOC     = 0xFFFD;   // Reset vector location
+    constexpr u16 STACK_START   = 0x01FF;   // Stack start (inclusive)
+    constexpr u16 STACK_END     = 0x0100;   // Stack end (inclusive)
+
+    constexpr u8 FLAG_MASK_C = 0b00000001;
+    constexpr u8 FLAG_MASK_Z = 0b00000010;
+    constexpr u8 FLAG_MASK_I = 0b00000100;
+    constexpr u8 FLAG_MASK_D = 0b00001000;
+    constexpr u8 FLAG_MASK_B = 0b00010000;
+    constexpr u8 FLAG_MASK_NOT_USED = 0b00100000;
+    constexpr u8 FLAG_MASK_V = 0b01000000;
+    constexpr u8 FLAG_MASK_N = 0b10000000;
+
+    constexpr u8 FLAG_INIT = FLAG_MASK_NOT_USED;
 
     enum AddrMode {
         IMP = 0,    // Register to use is implied in the instruction
@@ -48,8 +61,8 @@ namespace mos6502 {
         inline u8 getCurrentInstr() { return this->ram[this->PC]; }
 
         inline void set_ZN_flags(u8 val) {
-            SR.Z = (val == 0);
-            SR.N = ((signBit(val)) != 0);
+            set_flag_z(val == 0);
+            set_flag_n((signBit(val)) != 0);
         }
 
         // Arithmetic functions
@@ -57,33 +70,33 @@ namespace mos6502 {
         u8 bitwise_eor(u8 op1, u8 op2) { return op1 ^ op2; }
         u8 bitwise_or(u8 op1, u8 op2)  { return op1 | op2; }
         u8 add(u8 op1, u8 op2) {
-            u8 val = op1 + op2 + SR.C;
-            SR.V = (signBit(A) != signBit(val));
-            SR.C = SR.V;
+            u8 val = op1 + op2 + get_flag_c();
+            set_flag_v(signBit(A) != signBit(val));
+            set_flag_c(get_flag_v());
             return val;
         }
         u8 sub(u8 op1, u8 op2) {
-            u8 val = op1 - op2 - SR.C;
-            SR.V = (signBit(A) != signBit(val));
-            SR.C = !SR.V;   // Cleared if overflow
+            u8 val = op1 - op2 - get_flag_c();
+            set_flag_v(signBit(A) != signBit(val));
+            set_flag_c( !get_flag_v() );   // Cleared if overflow
             return val;
         }
 
         void shift_left(u8& op) {        // Arithmetic shift left by 1
-            SR.C = (signBit(op)) != 0;
+            set_flag_c((signBit(op)) != 0);
             op = op << 1;
         }
         void shift_right(u8& op) {       // Logical shift right by 1
-            SR.C = lowBit(op);
+            set_flag_c(lowBit(op));
             op = op >> 1;
         }
         void rotate_left(u8& op) {      // Rotate left by 1
-            SR.C = (signBit(op)) != 0;
-            op = (op << 1) + SR.C;
+            set_flag_c((signBit(op)) != 0);
+            op = (op << 1) + get_flag_c();
         }
         void rotate_right(u8& op) {     // Rotate right by 1
-            SR.C = lowBit(op);
-            op = (op >> 1) + (SR.C << 7);
+            set_flag_c(lowBit(op));
+            op = (op >> 1) + (get_flag_c() << 7);
         }
 
         // Address, value, offset
@@ -219,20 +232,32 @@ namespace mos6502 {
 
         inline void bit() {
             u8 and_res = avo_ret.val & A;
-            SR.Z = (and_res == 0);
-            SR.V = (and_res & 0b01000000) != 0;
-            SR.N = (and_res & 0b10000000) != 0;
+            set_flag_z(and_res == 0);
+            set_flag_v((and_res & 0b01000000) != 0);
+            set_flag_n((and_res & 0b10000000) != 0);
         }
 
         // CMP, CPX, CPY
         inline void cmp(u8& reg) {
-            SR.C = (reg >= avo_ret.val);
-            SR.Z = (reg == avo_ret.val);
-            SR.N = signBit(reg - avo_ret.val);
+            set_flag_c(reg >= avo_ret.val);
+            set_flag_z(reg == avo_ret.val);
+            set_flag_n(signBit(reg - avo_ret.val));
         }
 
         inline void jmp() {
             PC = avo_ret.addr;
+        }
+
+        // Push onto stack
+        inline void push(u8& reg) {
+            ram[S] = reg;
+            S -= 8;
+        }
+
+        // Pull from stack
+        inline void pull(u8& reg) {
+            S += 8;
+            reg = ram[S];
         }
 
         // For execute() function, so we don't need to pass it around so much
@@ -249,17 +274,15 @@ namespace mos6502 {
         u8  X;          // index register
         u8  Y;          // index register
         u8  S;          // stack pointer (aka 'SP')
-        // Flags
-        struct {
-            u1 C : 1;       // flag: carry
-            u1 Z : 1;       // flag: zero
-            u1 I : 1;       // flag: interrupt disable
-            u1 D : 1;       // flag: decimal
-            u1 B : 1;       // flag: break
-            u1 _ : 1;       //       not used / ignored
-            u1 V : 1;       // flag: overflow
-            u1 N : 1;       // flag: negative
-        } SR;           // status register (flags) (8 bits)
+        u8  SR;         // status register (flags) (8 bits)
+                        //  bit 0: C: carry
+                        //  bit 1: Z: zero
+                        //  bit 2: I: interrupt disable
+                        //  bit 3: D: decimal
+                        //  bit 4: B: break
+                        //  bit 5:    not used / ignored (set high)
+                        //  bit 6: V: overflow
+                        //  bit 7: N: negative
 
         // Methods
         void reset();
@@ -267,10 +290,21 @@ namespace mos6502 {
         u8& operator[] (u16 i) { return this->ram[i]; }
 
         // Helper method for accessing flags
-        inline u1 flag_carry()      { return this->SR.C; }
-        inline u1 flag_zero()       { return this->SR.Z; }
-        inline u1 flag_overflow()   { return this->SR.V; }
-        inline u1 flag_negative()   { return this->SR.N; }
+        inline u1 get_flag_c()   { return (this->SR & FLAG_MASK_C) != 0; }
+        inline u1 get_flag_z()   { return (this->SR & FLAG_MASK_Z) != 0; }
+        inline u1 get_flag_i()   { return (this->SR & FLAG_MASK_I) != 0; }
+        inline u1 get_flag_d()   { return (this->SR & FLAG_MASK_D) != 0; }
+        inline u1 get_flag_b()   { return (this->SR & FLAG_MASK_B) != 0; }
+        inline u1 get_flag_v()   { return (this->SR & FLAG_MASK_V) != 0; }
+        inline u1 get_flag_n()   { return (this->SR & FLAG_MASK_N) != 0; }
+
+        inline void set_flag_c(u1 val)  { this->SR = (this->SR & ~FLAG_MASK_C) + (val * FLAG_MASK_C); }
+        inline void set_flag_z(u1 val)  { this->SR = (this->SR & ~FLAG_MASK_Z) + (val * FLAG_MASK_Z); }
+        inline void set_flag_i(u1 val)  { this->SR = (this->SR & ~FLAG_MASK_I) + (val * FLAG_MASK_I); }
+        inline void set_flag_d(u1 val)  { this->SR = (this->SR & ~FLAG_MASK_D) + (val * FLAG_MASK_D); }
+        inline void set_flag_b(u1 val)  { this->SR = (this->SR & ~FLAG_MASK_B) + (val * FLAG_MASK_B); }
+        inline void set_flag_v(u1 val)  { this->SR = (this->SR & ~FLAG_MASK_V) + (val * FLAG_MASK_V); }
+        inline void set_flag_n(u1 val)  { this->SR = (this->SR & ~FLAG_MASK_N) + (val * FLAG_MASK_N); }
     };
 
     enum Instructions : u8 {
@@ -300,6 +334,10 @@ namespace mos6502 {
         CPX_IMM = 0xE0, CPX_ZPG = 0xE4, CPX_ABS = 0xEC,
         CPY_IMM = 0xC0, CPY_ZPG = 0xC4, CPY_ABS = 0xCC,
         JMP_ABS = 0x4C, JMP_IND = 0x6C,
+        PHA_IMP = 0x48,
+        PHP_IMP = 0x08,
+        PLA_IMP = 0x68,
+        PLP_IMP = 0x28,
     };
 
     const AddrMode INSTR_GET_ADDR_MODE [256] = {

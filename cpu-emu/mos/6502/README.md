@@ -28,9 +28,9 @@ make
 ## Overview
 * 8 bit microcontroller
 * 16 bit data bus (ie 2^16 = 64 KiB max memory)
-* "zero page" the first 256 bytes of memory indended to be used as registers, special addressing mode to access them easily
+* "zero page" the first 256 bytes of memory intended to be used as registers, special addressing mode to access them easily
 
-* Processor Stack: LIFO, top down, 8 bit range, 0x0100 - 0x01FF
+* Processor Stack: grows down, 8 bit range, 0x01FF to 0x0100
 
 * Signed values are two's complement, sign in bit 7 (most significant bit).
     * (%11111111 = $FF = -1, %10000000 = $80 = -128, %01111111 = $7F = +127)
@@ -182,6 +182,12 @@ CMP     compare (with accumulator)
 CPX     compare with X
 CPY     compare with Y
 
+# Push / pop stack
+PHA ....    push accumulator
+PHP ....    push processor status (SR)
+PLA ....    pull accumulator
+PLP ....    pull processor status (SR)
+
 # Branching
 BCC ....    branch on carry clear
 BCS ....    branch on carry set
@@ -194,12 +200,6 @@ BVS ....    branch on overflow set
 JMP     jump
 JSR ....    jump subroutine
 RTS ....    return from subroutine
-
-# Push / pop stack
-PHA ....    push accumulator
-PHP ....    push processor status (SR)
-PLA ....    pull accumulator
-PLP ....    pull processor status (SR)
 
 # Interrupts
 BRK ....    break / interrupt

@@ -71,8 +71,8 @@ TEST_F(Api, Execute) { cpu.execute(0); }
 auto common_load_execute = [] (CPU& cpu, u32 runCycles, u32 expCycles, u8& expReg, u8 expVal, u1 expZ, u1 expN) {
     ASSERT_TRUE(cpu.execute(runCycles) == expCycles);
     ASSERT_TRUE(expReg == expVal);
-    ASSERT_TRUE(cpu.SR.Z == expZ);
-    ASSERT_TRUE(cpu.SR.N == expN);
+    ASSERT_TRUE(cpu.get_flag_z() == expZ);
+    ASSERT_TRUE(cpu.get_flag_n() == expN);
 };
 
 // Common load immediate instructions
@@ -371,8 +371,8 @@ void transfer_common(CPU& cpu, u8 inst, u8& fromReg, u8& toReg, bool check_flags
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(toReg == 0x10);
     if (check_flags) {
-        ASSERT_TRUE(cpu.SR.Z == F_NON_ZERO);
-        ASSERT_TRUE(cpu.SR.N == F_NON_NEG);
+        ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+        ASSERT_TRUE(cpu.get_flag_n() == F_NON_NEG);
     }
 
     // Zero
@@ -383,8 +383,8 @@ void transfer_common(CPU& cpu, u8 inst, u8& fromReg, u8& toReg, bool check_flags
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(toReg == 0x0);
     if (check_flags) {
-        ASSERT_TRUE(cpu.SR.Z == F_ZERO);
-        ASSERT_TRUE(cpu.SR.N == F_NON_NEG);
+        ASSERT_TRUE(cpu.get_flag_z() == F_ZERO);
+        ASSERT_TRUE(cpu.get_flag_n() == F_NON_NEG);
     }
 
     // Negative
@@ -394,8 +394,8 @@ void transfer_common(CPU& cpu, u8 inst, u8& fromReg, u8& toReg, bool check_flags
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(toReg == 0xFF);
     if (check_flags) {
-        ASSERT_TRUE(cpu.SR.Z == F_NON_ZERO);
-        ASSERT_TRUE(cpu.SR.N == F_NEG);
+        ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+        ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
     }
 }
 
@@ -420,30 +420,30 @@ TEST_F(NOP, MultipleNoOp) {
 TEST_F(CLEAR_FLAGS, ClearDifferentFlags) {
     // Carry
     cpu[RESET_LOC] = CLC_IMP;
-    cpu.SR.C = 1;
+    cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.SR.C == 0);
+    ASSERT_TRUE(cpu.get_flag_c() == 0);
 
     // Decimal
     cpu.reset();
     cpu[RESET_LOC] = CLD_IMP;
-    cpu.SR.D = 1;
+    cpu.set_flag_d(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.SR.D == 0);
+    ASSERT_TRUE(cpu.get_flag_d() == 0);
 
     // Interrupt Disable
     cpu.reset();
     cpu[RESET_LOC] = CLI_IMP;
-    cpu.SR.I = 1;
+    cpu.set_flag_i(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.SR.I == 0);
+    ASSERT_TRUE(cpu.get_flag_i() == 0);
 
     // Overflow
     cpu.reset();
     cpu[RESET_LOC] = CLV_IMP;
-    cpu.SR.V = 1;
+    cpu.set_flag_v(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.SR.V == 0);
+    ASSERT_TRUE(cpu.get_flag_v() == 0);
 }
 
 
@@ -451,23 +451,23 @@ TEST_F(CLEAR_FLAGS, ClearDifferentFlags) {
 TEST_F(SET_FLAGS, SetDifferentFlags) {
     // Carry
     cpu[RESET_LOC] = SEC_IMP;
-    cpu.SR.C = 0;
+    cpu.set_flag_c(0);
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.SR.C == 1);
+    ASSERT_TRUE(cpu.get_flag_c() == 1);
 
     // Decimal
     cpu.reset();
     cpu[RESET_LOC] = SED_IMP;
-    cpu.SR.D = 0;
+    cpu.set_flag_d(0);
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.SR.D == 1);
+    ASSERT_TRUE(cpu.get_flag_d() == 1);
 
     // Interrupt Disable
     cpu.reset();
     cpu[RESET_LOC] = SEI_IMP;
-    cpu.SR.I = 0;
+    cpu.set_flag_i(0);
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.SR.I == 1);
+    ASSERT_TRUE(cpu.get_flag_i() == 1);
 }
 
 
@@ -477,8 +477,8 @@ void inc_dec_implied(CPU& cpu, u8 inst, u8& incDecReg, u8 startingVal, s8 offset
     incDecReg = startingVal;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(incDecReg == (u8) (startingVal + offset));
-    ASSERT_TRUE(cpu.SR.Z == zeroFlagExpect);
-    ASSERT_TRUE(cpu.SR.N == negativeFlagExpect);
+    ASSERT_TRUE(cpu.get_flag_z() == zeroFlagExpect);
+    ASSERT_TRUE(cpu.get_flag_n() == negativeFlagExpect);
     cpu.reset();
 }
 
@@ -653,8 +653,8 @@ TEST_F(AND, Immediate) {
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
-    ASSERT_TRUE(cpu.SR.Z == F_ZERO);
-    ASSERT_TRUE(cpu.SR.N == F_NON_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_NEG);
 
     // Positive
     cpu.reset();
@@ -663,8 +663,8 @@ TEST_F(AND, Immediate) {
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x30);
-    ASSERT_TRUE(cpu.SR.Z == F_NON_ZERO);
-    ASSERT_TRUE(cpu.SR.N == F_NON_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_NEG);
 
     // Negative
     cpu.reset();
@@ -673,8 +673,8 @@ TEST_F(AND, Immediate) {
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x80);
-    ASSERT_TRUE(cpu.SR.Z == F_NON_ZERO);
-    ASSERT_TRUE(cpu.SR.N == F_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 TEST_F(AND, ZeroPage)   { and_common_zero_page(cpu, AND_ZPG, 3); }
 TEST_F(AND, ZeroPageX)  { and_common_zero_page(cpu, AND_ZPX, 4, &cpu.X, 0x20); }
@@ -776,8 +776,8 @@ TEST_F(EOR, Immediate) {
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
-    ASSERT_TRUE(cpu.SR.Z == F_ZERO);
-    ASSERT_TRUE(cpu.SR.N == F_NON_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_NEG);
 
     // Positive
     cpu.reset();
@@ -786,8 +786,8 @@ TEST_F(EOR, Immediate) {
     cpu.A = 0x0F;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x5A);
-    ASSERT_TRUE(cpu.SR.Z == F_NON_ZERO);
-    ASSERT_TRUE(cpu.SR.N == F_NON_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_NEG);
 
     // Negative
     cpu.reset();
@@ -796,8 +796,8 @@ TEST_F(EOR, Immediate) {
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xA5);
-    ASSERT_TRUE(cpu.SR.Z == F_NON_ZERO);
-    ASSERT_TRUE(cpu.SR.N == F_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 TEST_F(EOR, ZeroPage)   { eor_common_zero_page(cpu, EOR_ZPG, 3); }
 TEST_F(EOR, ZeroPageX)  { eor_common_zero_page(cpu, EOR_ZPX, 4, &cpu.X, 0x20); }
@@ -899,8 +899,8 @@ TEST_F(ORA, Immediate) {
     cpu.A = 0x0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
-    ASSERT_TRUE(cpu.SR.Z == F_ZERO);
-    ASSERT_TRUE(cpu.SR.N == F_NON_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_NEG);
 
     // Positive
     cpu.reset();
@@ -909,8 +909,8 @@ TEST_F(ORA, Immediate) {
     cpu.A = 0x1F;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x1F);
-    ASSERT_TRUE(cpu.SR.Z == F_NON_ZERO);
-    ASSERT_TRUE(cpu.SR.N == F_NON_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_NEG);
 
     // Negative
     cpu.reset();
@@ -919,8 +919,8 @@ TEST_F(ORA, Immediate) {
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xF5);
-    ASSERT_TRUE(cpu.SR.Z == F_NON_ZERO);
-    ASSERT_TRUE(cpu.SR.N == F_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 TEST_F(ORA, ZeroPage)   { ora_common_zero_page(cpu, ORA_ZPG, 3); }
 TEST_F(ORA, ZeroPageX)  { ora_common_zero_page(cpu, ORA_ZPX, 4, &cpu.X, 0x20); }
@@ -971,7 +971,7 @@ TEST_F(ASL, Accumulator) {
     cpu.A = 0x08;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x10);
-    ASSERT_TRUE(cpu.SR.C == F_NO_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
 
     // Carry
     cpu.reset();
@@ -979,7 +979,7 @@ TEST_F(ASL, Accumulator) {
     cpu.A = 0xFF;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xFE);
-    ASSERT_TRUE(cpu.SR.C == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
 
     // Zero
     cpu.reset();
@@ -987,7 +987,7 @@ TEST_F(ASL, Accumulator) {
     cpu.A = 0x80;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
-    ASSERT_TRUE(cpu.SR.C == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
 
     // Negative
     cpu.reset();
@@ -995,7 +995,7 @@ TEST_F(ASL, Accumulator) {
     cpu.A = 0x40;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x80);
-    ASSERT_TRUE(cpu.SR.N == F_NEG);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 // Assume flags are set correctly now, only test shift is correct
 TEST_F(ASL, ZeroPage) {
@@ -1039,7 +1039,7 @@ TEST_F(LSR, Accumulator) {
     cpu.A = 0x08;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x04);
-    ASSERT_TRUE(cpu.SR.C == F_NO_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
 
     // Carry
     cpu.reset();
@@ -1047,7 +1047,7 @@ TEST_F(LSR, Accumulator) {
     cpu.A = 0xFF;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x7F);
-    ASSERT_TRUE(cpu.SR.C == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
 
     // Zero
     cpu.reset();
@@ -1055,7 +1055,7 @@ TEST_F(LSR, Accumulator) {
     cpu.A = 0x01;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
-    ASSERT_TRUE(cpu.SR.C == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
 }
 // Assume flags are set correctly now, only test shift is correct
 TEST_F(LSR, ZeroPage) {
@@ -1099,7 +1099,7 @@ TEST_F(ROL, Accumulator) {
     cpu.A = 0x08;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x10);
-    ASSERT_TRUE(cpu.SR.C == F_NO_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
 
     // Rotate bit
     cpu.reset();
@@ -1107,7 +1107,7 @@ TEST_F(ROL, Accumulator) {
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xE1);
-    ASSERT_TRUE(cpu.SR.C == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
 
     // Zero
     cpu.reset();
@@ -1115,7 +1115,7 @@ TEST_F(ROL, Accumulator) {
     cpu.A = 0x0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
-    ASSERT_TRUE(cpu.SR.C == F_NO_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
 
     // Negative
     cpu.reset();
@@ -1123,7 +1123,7 @@ TEST_F(ROL, Accumulator) {
     cpu.A = 0x40;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x80);
-    ASSERT_TRUE(cpu.SR.N == F_NEG);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 // Assume flags are set correctly now, only test rotate is correct
 TEST_F(ROL, ZeroPage) {
@@ -1167,7 +1167,7 @@ TEST_F(ROR, Accumulator) {
     cpu.A = 0x08;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x04);
-    ASSERT_TRUE(cpu.SR.C == F_NO_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
 
     // Rotate bit
     cpu.reset();
@@ -1175,7 +1175,7 @@ TEST_F(ROR, Accumulator) {
     cpu.A = 0xF1;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xF8);
-    ASSERT_TRUE(cpu.SR.C == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
 
     // Zero
     cpu.reset();
@@ -1183,7 +1183,7 @@ TEST_F(ROR, Accumulator) {
     cpu.A = 0x0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
-    ASSERT_TRUE(cpu.SR.C == F_NO_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
 
     // Negative
     cpu.reset();
@@ -1191,7 +1191,7 @@ TEST_F(ROR, Accumulator) {
     cpu.A = 0x01;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x80);
-    ASSERT_TRUE(cpu.SR.N == F_NEG);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 // Assume flags are set correctly now, only test rotate is correct
 TEST_F(ROR, ZeroPage) {
@@ -1242,7 +1242,7 @@ TEST_F(ADC, ImmediateZeroFlag) {
     cpu.A = 0xEE;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
-    ASSERT_TRUE(cpu.flag_zero() == F_ZERO);
+    ASSERT_TRUE(cpu.get_flag_z() == F_ZERO);
 }
 TEST_F(ADC, ImmediateNegativeFlag) {
     cpu[RESET_LOC] = ADC_IMM;
@@ -1250,7 +1250,7 @@ TEST_F(ADC, ImmediateNegativeFlag) {
     cpu.A = 0xE0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xF2);
-    ASSERT_TRUE(cpu.flag_negative() == F_NEG);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 TEST_F(ADC, ImmediateCarryFlag) {
     cpu[RESET_LOC] = ADC_IMM;
@@ -1258,13 +1258,13 @@ TEST_F(ADC, ImmediateCarryFlag) {
     cpu.A = 0x10;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xFF);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
 }
 TEST_F(ADC, ImmediateWithCarryEnabled) {
     cpu[RESET_LOC] = ADC_IMM;
     cpu[RESET_LOC + 1] = 0x12;
     cpu.A = 0x30;
-    cpu.SR.C = 1;
+    cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x43);
 }
@@ -1389,7 +1389,7 @@ TEST_F(SBC, ImmediateZeroFlag) {
     cpu.A = 0x12;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
-    ASSERT_TRUE(cpu.flag_zero() == F_ZERO);
+    ASSERT_TRUE(cpu.get_flag_z() == F_ZERO);
 }
 TEST_F(SBC, ImmediateNegativeFlag) {
     cpu[RESET_LOC] = SBC_IMM;
@@ -1397,7 +1397,7 @@ TEST_F(SBC, ImmediateNegativeFlag) {
     cpu.A = 0x12;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xFF);
-    ASSERT_TRUE(cpu.flag_negative() == F_NEG);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 TEST_F(SBC, ImmediateCarryFlag) {
     cpu[RESET_LOC] = SBC_IMM;
@@ -1405,13 +1405,13 @@ TEST_F(SBC, ImmediateCarryFlag) {
     cpu.A = 0x12;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xFF);
-    ASSERT_TRUE(cpu.flag_carry() == F_NO_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
 }
 TEST_F(SBC, ImmediateWithCarryEnabled) {
     cpu[RESET_LOC] = SBC_IMM;
     cpu[RESET_LOC + 1] = 0x12;
     cpu.A = 0x30;
-    cpu.SR.C = 1;
+    cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x1D);
 }
@@ -1531,9 +1531,9 @@ TEST_F(BIT, ZeroPage) {
     cpu[0x15] = 0xF3;   // 0b 1111 0011
     cpu.A = 0x0C;       // 0b 0000 1100
     ASSERT_TRUE(cpu.execute(3) == 3);
-    ASSERT_TRUE(cpu.flag_zero() == F_ZERO);
-    ASSERT_TRUE(cpu.flag_overflow() == F_NO_OVERFLOW);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_ZERO);
+    ASSERT_TRUE(cpu.get_flag_v() == F_NO_OVERFLOW);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_NEG);
 
     // Not zero
     cpu.reset();
@@ -1542,9 +1542,9 @@ TEST_F(BIT, ZeroPage) {
     cpu[0x15] = 0xF3;   // 0b 1111 0011
     cpu.A = 0x99;       // 0b 1001 1001
     ASSERT_TRUE(cpu.execute(3) == 3);   // Anded value should be 0b 1001 0001
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_overflow() == F_NO_OVERFLOW);
-    ASSERT_TRUE(cpu.flag_negative() == F_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_v() == F_NO_OVERFLOW);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 TEST_F(BIT, Absolute) {
     cpu.reset();
@@ -1554,9 +1554,9 @@ TEST_F(BIT, Absolute) {
     cpu[0x1415] = 0xF3;     // 0b 1111 0011
     cpu.A = 0x99;           // 0b 1001 1001
     ASSERT_TRUE(cpu.execute(4) == 4);   // Anded value should be 0b 1001 0001
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_overflow() == F_NO_OVERFLOW);
-    ASSERT_TRUE(cpu.flag_negative() == F_NEG);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_v() == F_NO_OVERFLOW);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 
 
@@ -1567,9 +1567,9 @@ TEST_F(CMP, Immediate) {
     cpu[RESET_LOC + 1] = 0x42;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_NEG);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_NEG);
 
     // Greater
     cpu.reset();
@@ -1577,9 +1577,9 @@ TEST_F(CMP, Immediate) {
     cpu[RESET_LOC + 1] = 0x21;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 
     // Less
     cpu.reset();
@@ -1587,9 +1587,9 @@ TEST_F(CMP, Immediate) {
     cpu[RESET_LOC + 1] = 0x42;
     cpu.A = 0x21;
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.flag_carry() == F_NO_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NEG);
+    ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 // Just test for one result of comparison now
 TEST_F(CMP, ZeroPage) {
@@ -1598,9 +1598,9 @@ TEST_F(CMP, ZeroPage) {
     cpu[0x51] = 0x31;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(3) == 3);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, ZeroPageX) {
     cpu[RESET_LOC] = CMP_ZPX;
@@ -1609,9 +1609,9 @@ TEST_F(CMP, ZeroPageX) {
     cpu[0x61] = 0x31;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(4) == 4);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, Absolute) {
     cpu[RESET_LOC] = CMP_ABS;
@@ -1620,9 +1620,9 @@ TEST_F(CMP, Absolute) {
     cpu[0x7451] = 0x31;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(4) == 4);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, AbsoluteX) {
     cpu[RESET_LOC] = CMP_ABX;
@@ -1632,9 +1632,9 @@ TEST_F(CMP, AbsoluteX) {
     cpu[0x7461] = 0x31;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(4) == 4);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, AbsoluteY) {
     cpu[RESET_LOC] = CMP_ABY;
@@ -1644,9 +1644,9 @@ TEST_F(CMP, AbsoluteY) {
     cpu[0x7461] = 0x31;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(4) == 4);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, IndirectX) {
     cpu[RESET_LOC] = CMP_IDX;
@@ -1657,9 +1657,9 @@ TEST_F(CMP, IndirectX) {
     cpu.A = 0x42;
     cpu[0x1234] = 0x31;
     ASSERT_TRUE(cpu.execute(6) == 6);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, IndirectY) {
     // No page cross
@@ -1671,9 +1671,9 @@ TEST_F(CMP, IndirectY) {
     cpu.A = 0x42;
     cpu[0x1239] = 0x31;
     ASSERT_TRUE(cpu.execute(5) == 5);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 // Since CPX and CPY are so similar to CMP, just test a little
 TEST_F(CMP, CPX_ImmediateSimple) {
@@ -1681,18 +1681,18 @@ TEST_F(CMP, CPX_ImmediateSimple) {
     cpu[RESET_LOC + 1] = 0x21;
     cpu.X = 0x42;
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, CPY_ImmediateSimple) {
     cpu[RESET_LOC] = CPY_IMM;
     cpu[RESET_LOC + 1] = 0x21;
     cpu.Y = 0x42;
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.flag_carry() == F_YES_CARRY);
-    ASSERT_TRUE(cpu.flag_zero() == F_NON_ZERO);
-    ASSERT_TRUE(cpu.flag_negative() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
+    ASSERT_TRUE(cpu.get_flag_z() == F_NON_ZERO);
+    ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 
 
