@@ -11,8 +11,11 @@ void mos6502::CPU::reset() {
     // Clear RAM
     for (u32 i = 0; i < MEM_MAX; ++i)
         ram[i] = 0;
+    // Initial memory loaded?
+    ram[RESET_VEC_LOC] = lowByte(RESET_START);
+    ram[RESET_VEC_LOC + 1] = highByte(RESET_START);
     // Reset registers
-    PC = RESET_LOC;
+    PC = B2W(ram[RESET_VEC_LOC], ram[RESET_VEC_LOC + 1]);
     A = 0;
     X = 0;
     Y = 0;
@@ -110,6 +113,8 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
             case BVS_REL: branch(get_flag_v() == 1);                            break;
             case JSR_ABS: jump_sub_routine();                                   break;
             case RTS_IMP: return_sub_routine();                                 break;
+            case BRK_IMP: generate_interrupt();                                 break;
+            case RTI_IMP: return_from_interrupt();                              break;
 
             // Invalid instruction
             default: {

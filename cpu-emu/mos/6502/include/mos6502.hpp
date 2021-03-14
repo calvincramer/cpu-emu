@@ -25,10 +25,15 @@ inline u1 onDifferentPages(u16 x, u16 y) { return highByte(x) != highByte(y); }
 namespace mos6502 {
     // Constants
     constexpr u32 MEM_MAX       = 1 << 16;  // Max amount of memory
-    constexpr u16 RESET_LOC     = 0xFFFD;   // Reset vector location
-    constexpr u16 STACK_START   = 0x01FF;   // Stack start (inclusive)
-    constexpr u16 STACK_END     = 0x0100;   // Stack end (inclusive)
-
+    // Memory layout
+    constexpr u16 INT_VEC_LOC           = 0xFFFE;   // Interrupt vector location low byte
+    constexpr u16 RESET_VEC_LOC         = 0xFFFC;   // Reset vector location low byte
+    constexpr u16 NON_MASK_INT_VEC_LOC  = 0xFFFA;   // Non-maskable vector location low byte
+    constexpr u16 STACK_START           = 0x01FF;   // Stack start (inclusive)
+    constexpr u16 STACK_END             = 0x0100;   // Stack end (inclusive)
+    // Temp
+    constexpr u16 RESET_START           = 0x4000;   // Temporary
+    // Flags
     constexpr u8 FLAG_MASK_C = 0b00000001;
     constexpr u8 FLAG_MASK_Z = 0b00000010;
     constexpr u8 FLAG_MASK_I = 0b00000100;
@@ -283,6 +288,27 @@ namespace mos6502 {
             PC = B2W(low, high) + 1;
         }
 
+        inline void generate_interrupt() {
+            // PC and flag register on stack
+            push(highByte(PC)); // Proper byte order?
+            push(lowByte(PC));
+            push(SR);
+
+            // Jump to interrupt vector location
+            PC = B2W(ram[INT_VEC_LOC], ram[INT_VEC_LOC + 1]);
+
+            // break flag high
+            set_flag_b(1);
+        }
+
+        inline void return_from_interrupt() {
+            // Load flags and PC from stack
+            SR = pull();
+            u8 pcLow = pull();
+            u8 pcHigh = pull();
+            PC = B2W(pcLow, pcHigh);
+        }
+
         // For execute() function, so we don't need to pass it around so much
         u32 numCycles;  // Number of cycles left to execute
         AddrMode am;    // Address mode of current instruction
@@ -360,6 +386,7 @@ namespace mos6502 {
         BCC_REL = 0x90, BCS_REL = 0xB0, BEQ_REL = 0xF0, BMI_REL = 0x30, BNE_REL = 0xD0, BPL_REL = 0x10, BVC_REL = 0x50, BVS_REL = 0x70,
         JMP_ABS = 0x4C, JMP_IND = 0x6C,
         JSR_ABS = 0x20, RTS_IMP = 0x60,
+        BRK_IMP = 0x00, RTI_IMP = 0x40,
         NOP_IMP = 0xEA,
     };
 
@@ -406,15 +433,15 @@ namespace mos6502 {
 
     /*
      * Number of bytes for each instruction, used to update PC
-     * JMP, BRANCH, SUBROUTINE instructions set to 0 bytes, to change PC manually
+     * JMP, BRANCH, SUBROUTINE, BRK, RTI instructions set to 0 bytes, to change PC manually
      */
     const u8 INSTR_BYTES [256] = {
     // -0                      -8
-        1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 0-
+        0, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 0-
         0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 1-
         0, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,    // 2-
         0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 3-
-        1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 4-
+        0, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 4-
         0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 5-
         0, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 6-
         0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 7-

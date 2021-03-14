@@ -67,6 +67,7 @@ class PUSH          : public SetupCPU_F {};
 class PULL          : public SetupCPU_F {};
 class BRANCH        : public SetupCPU_F {};
 class SUBROUTINE    : public SetupCPU_F {};
+class INTERRUPT     : public SetupCPU_F {};
 
 
 TEST_F(Api, Reset) { cpu.reset(); }
@@ -82,44 +83,44 @@ auto common_load_execute = [] (CPU& cpu, u32 runCycles, u32 expCycles, u8& expRe
 // Common load immediate instructions
 void load_immediate(CPU& cpu, u8 loadInst, u8& reg) {
     // Zero
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x0;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x0;
     common_load_execute(cpu, 2, 2, reg, 0, F_ZERO, F_NON_NEG);
 
     // Positive
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x42;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x42;
     common_load_execute(cpu, 2, 2, reg, 0x42, F_NON_ZERO, F_NON_NEG);
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0xFF;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0xFF;
     common_load_execute(cpu, 2, 2, reg, 0xFF, F_NON_ZERO, F_NEG);
 }
 
 // Common load from zero page instructions
 void load_zero_page(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles, u8* offsetReg = nullptr, u8 offsetVal = 0) {
     // Zero
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x50;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x50;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu[0x50 + offsetVal] = 0x0;
     common_load_execute(cpu, cycles, cycles, loadToReg, 0x0, F_ZERO, F_NON_NEG);
 
     // Positive
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x50;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x50;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu[0x50 + offsetVal] = 0x42;
     common_load_execute(cpu, cycles, cycles, loadToReg, 0x42, F_NON_ZERO, F_NON_NEG);
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x50;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x50;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu[0x50 + offsetVal] = 0xFF;
     common_load_execute(cpu, cycles, cycles, loadToReg, 0xFF, F_NON_ZERO, F_NEG);
@@ -127,8 +128,8 @@ void load_zero_page(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles, u8* offsetR
     // Wrap (if there is an offset)
     if (offsetReg != nullptr) {
         cpu.reset();
-        cpu[RESET_LOC] = loadInst;
-        cpu[RESET_LOC + 1] = 0xF0;
+        cpu[RESET_START] = loadInst;
+        cpu[RESET_START + 1] = 0xF0;
         *offsetReg = offsetVal;
         cpu[0xF0 + offsetVal] = 0x42;
         common_load_execute(cpu, cycles, cycles, loadToReg, 0x42, F_NON_ZERO, F_NON_NEG);
@@ -139,27 +140,27 @@ void load_zero_page(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles, u8* offsetR
 void load_absolute(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles, u8* offsetReg = nullptr, u8 offsetVal = 0) {
     // Addr is 0x4321
     // Zero
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x21;
-    cpu[RESET_LOC + 2] = 0x43;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x21;
+    cpu[RESET_START + 2] = 0x43;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu[0x4321 + offsetVal] = 0x0;
     common_load_execute(cpu, cycles, cycles, loadToReg, 0x0, F_ZERO, F_NON_NEG);
 
     // Positive
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x21;
-    cpu[RESET_LOC + 2] = 0x43;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x21;
+    cpu[RESET_START + 2] = 0x43;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu[0x4321 + offsetVal] = 0x42;
     common_load_execute(cpu, cycles, cycles, loadToReg, 0x42, F_NON_ZERO, F_NON_NEG);
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x21;
-    cpu[RESET_LOC + 2] = 0x43;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x21;
+    cpu[RESET_START + 2] = 0x43;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu[0x4321 + offsetVal] = 0xFF;
     common_load_execute(cpu, cycles, cycles, loadToReg, 0xFF, F_NON_ZERO, F_NEG);
@@ -168,9 +169,9 @@ void load_absolute(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles, u8* offsetRe
     if (offsetReg != nullptr) {
         offsetVal = 0xFF; // Force page cross
         cpu.reset();
-        cpu[RESET_LOC] = loadInst;
-        cpu[RESET_LOC + 1] = 0x21;
-        cpu[RESET_LOC + 2] = 0x43;
+        cpu[RESET_START] = loadInst;
+        cpu[RESET_START + 1] = 0x21;
+        cpu[RESET_START + 2] = 0x43;
         *offsetReg = offsetVal;
         cpu[0x4321 + offsetVal] = 0x42;
         common_load_execute(cpu, cycles + 1, cycles + 1, loadToReg, 0x42, F_NON_ZERO, F_NON_NEG);
@@ -180,8 +181,8 @@ void load_absolute(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles, u8* offsetRe
 // Common load indexed indirect instructions
 void load_indexed_indirect(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles) {
     // Zero
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.X = 0x5;
     cpu[0x0015] = 0x34;
     cpu[0x0016] = 0x12;     // Should load from 0x1234
@@ -190,8 +191,8 @@ void load_indexed_indirect(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles) {
 
     // Positive
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x10;
     cpu.X = 0x5;
     cpu[0x0015] = 0x34;
     cpu[0x0016] = 0x12;     // Should load from 0x1234
@@ -200,8 +201,8 @@ void load_indexed_indirect(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles) {
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x10;
     cpu.X = 0x5;
     cpu[0x0015] = 0x34;
     cpu[0x0016] = 0x12;     // Should load from 0x1234
@@ -210,8 +211,8 @@ void load_indexed_indirect(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles) {
 
     // Wrap zero-page
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x30;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x30;
     cpu.X = 0xF0;
     cpu[0x0020] = 0x34;
     cpu[0x0021] = 0x12;     // Should load from 0x1234
@@ -221,8 +222,8 @@ void load_indexed_indirect(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles) {
 
 void load_indirect_indexed(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles) {
     // Zero
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x10;
     cpu.Y = 0x5;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;     // Should load from 0x1234 + 0x5
@@ -231,8 +232,8 @@ void load_indirect_indexed(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles) {
 
     // Positive
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x10;
     cpu.Y = 0x5;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;     // Should load from 0x1234 + 0x5
@@ -241,8 +242,8 @@ void load_indirect_indexed(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles) {
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x10;
     cpu.Y = 0x5;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;     // Should load from 0x1234 + 0x5
@@ -251,8 +252,8 @@ void load_indirect_indexed(CPU& cpu, u8 loadInst, u8& loadToReg, u8 cycles) {
 
     // Page cross
     cpu.reset();
-    cpu[RESET_LOC] = loadInst;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = loadInst;
+    cpu[RESET_START + 1] = 0x10;
     cpu.Y = 0xFF;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;     // Should load from 0x1234 + 0xFF
@@ -291,8 +292,8 @@ TEST_F(LDY, AbsoluteX) { load_absolute (cpu, LDY_ABX, cpu.Y, 4, &cpu.X, 0x5); }
 // Store functions
 void store_common_zero_page(CPU& cpu, u8 storeInst, u8& storeReg, u8 cycles, u8* offsetReg = nullptr, u8 offsetVal = 0) {
     // No wrap with offset
-    cpu[RESET_LOC] = storeInst;
-    cpu[RESET_LOC + 1] = 0x50;
+    cpu[RESET_START] = storeInst;
+    cpu[RESET_START + 1] = 0x50;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     storeReg = 0x42;    // Value in register to store
     ASSERT_TRUE(cpu.execute(cycles) == cycles);
@@ -303,8 +304,8 @@ void store_common_zero_page(CPU& cpu, u8 storeInst, u8& storeReg, u8 cycles, u8*
         cpu.reset();
         offsetVal = 0xFF;   // Force wrap
         *offsetReg = offsetVal;
-        cpu[RESET_LOC] = storeInst;
-        cpu[RESET_LOC + 1] = 0x50;
+        cpu[RESET_START] = storeInst;
+        cpu[RESET_START + 1] = 0x50;
         storeReg = 0x42;
         ASSERT_TRUE(cpu.execute(cycles) == cycles);
         ASSERT_TRUE(cpu[(u8) (0x50 + offsetVal)] == storeReg);
@@ -312,9 +313,9 @@ void store_common_zero_page(CPU& cpu, u8 storeInst, u8& storeReg, u8 cycles, u8*
 }
 
 void store_common_absolute(CPU& cpu, u8 storeInst, u8& storeReg, u8 cycles, u8* offsetReg = nullptr, u8 offsetVal = 0) {
-    cpu[RESET_LOC] = storeInst;
-    cpu[RESET_LOC + 1] = 0x50;
-    cpu[RESET_LOC + 2] = 0x50;
+    cpu[RESET_START] = storeInst;
+    cpu[RESET_START + 1] = 0x50;
+    cpu[RESET_START + 2] = 0x50;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     storeReg = 0x42;    // Value in register to store
     ASSERT_TRUE(cpu.execute(cycles) == cycles);
@@ -322,8 +323,8 @@ void store_common_absolute(CPU& cpu, u8 storeInst, u8& storeReg, u8 cycles, u8* 
 }
 
 void store_indexed_indirect(CPU& cpu, u8 storeInst, u8& storeReg, u8 cycles) {
-    cpu[RESET_LOC] = storeInst;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START] = storeInst;
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.X = 0x5;
     storeReg = 0x67;
     cpu[0x0015] = 0x34;
@@ -334,8 +335,8 @@ void store_indexed_indirect(CPU& cpu, u8 storeInst, u8& storeReg, u8 cycles) {
 }
 
 void store_indirect_indexed(CPU& cpu, u8 storeInst, u8& storeReg, u8 cycles) {
-    cpu[RESET_LOC] = storeInst;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START] = storeInst;
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.Y = 0x5;
     storeReg = 0x67;
     cpu[0x0010] = 0x34;
@@ -370,7 +371,7 @@ TEST_F(STY, Absolute)   { store_common_absolute (cpu, STY_ABS, cpu.Y, 4); }
 // Transfer
 void transfer_common(CPU& cpu, u8 inst, u8& fromReg, u8& toReg, bool check_flags) {
     // Positive
-    cpu[RESET_LOC] = inst;
+    cpu[RESET_START] = inst;
     fromReg = 0x10;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(toReg == 0x10);
@@ -381,7 +382,7 @@ void transfer_common(CPU& cpu, u8 inst, u8& fromReg, u8& toReg, bool check_flags
 
     // Zero
     cpu.reset();
-    cpu[RESET_LOC] = inst;
+    cpu[RESET_START] = inst;
     fromReg = 0x0;
     toReg = 0x5;     // Not zero, so we see zero is actual put in
     ASSERT_TRUE(cpu.execute(2) == 2);
@@ -393,7 +394,7 @@ void transfer_common(CPU& cpu, u8 inst, u8& fromReg, u8& toReg, bool check_flags
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = inst;
+    cpu[RESET_START] = inst;
     fromReg = 0xFF;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(toReg == 0xFF);
@@ -413,38 +414,38 @@ TEST_F(TRANSFER, TransferY_to_A) { transfer_common(cpu, TYA_IMP, cpu.Y, cpu.A, t
 
 // No op
 TEST_F(NOP, MultipleNoOp) {
-    cpu[RESET_LOC] = NOP_IMP;
-    cpu[RESET_LOC + 1] = NOP_IMP;
+    cpu[RESET_START] = NOP_IMP;
+    cpu[RESET_START + 1] = NOP_IMP;
     ASSERT_TRUE(cpu.execute(4) == 4);
-    ASSERT_TRUE(cpu.PC == RESET_LOC + 2);
+    ASSERT_TRUE(cpu.PC == RESET_START + 2);
 }
 
 
 // Clear flags
 TEST_F(CLEAR_FLAGS, ClearDifferentFlags) {
     // Carry
-    cpu[RESET_LOC] = CLC_IMP;
+    cpu[RESET_START] = CLC_IMP;
     cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_c() == 0);
 
     // Decimal
     cpu.reset();
-    cpu[RESET_LOC] = CLD_IMP;
+    cpu[RESET_START] = CLD_IMP;
     cpu.set_flag_d(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_d() == 0);
 
     // Interrupt Disable
     cpu.reset();
-    cpu[RESET_LOC] = CLI_IMP;
+    cpu[RESET_START] = CLI_IMP;
     cpu.set_flag_i(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_i() == 0);
 
     // Overflow
     cpu.reset();
-    cpu[RESET_LOC] = CLV_IMP;
+    cpu[RESET_START] = CLV_IMP;
     cpu.set_flag_v(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_v() == 0);
@@ -454,21 +455,21 @@ TEST_F(CLEAR_FLAGS, ClearDifferentFlags) {
 // Set flags
 TEST_F(SET_FLAGS, SetDifferentFlags) {
     // Carry
-    cpu[RESET_LOC] = SEC_IMP;
+    cpu[RESET_START] = SEC_IMP;
     cpu.set_flag_c(0);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_c() == 1);
 
     // Decimal
     cpu.reset();
-    cpu[RESET_LOC] = SED_IMP;
+    cpu[RESET_START] = SED_IMP;
     cpu.set_flag_d(0);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_d() == 1);
 
     // Interrupt Disable
     cpu.reset();
-    cpu[RESET_LOC] = SEI_IMP;
+    cpu[RESET_START] = SEI_IMP;
     cpu.set_flag_i(0);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_i() == 1);
@@ -477,7 +478,7 @@ TEST_F(SET_FLAGS, SetDifferentFlags) {
 
 // Increment / decrement
 void inc_dec_implied(CPU& cpu, u8 inst, u8& incDecReg, u8 startingVal, s8 offset, u1 zeroFlagExpect, u1 negativeFlagExpect) {
-    cpu[RESET_LOC] = inst;
+    cpu[RESET_START] = inst;
     incDecReg = startingVal;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(incDecReg == (u8) (startingVal + offset));
@@ -489,16 +490,16 @@ void inc_dec_implied(CPU& cpu, u8 inst, u8& incDecReg, u8 startingVal, s8 offset
 // Zero and Negative flags not tested for INC and DEC, but covered under INX, INY, DEX, DEY
 TEST_F(INC_DEC, Increment) {
     // Zero page
-    cpu[RESET_LOC] = INC_ZPG;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = INC_ZPG;
+    cpu[RESET_START + 1] = 0x12;
     cpu[0x12] = 0x41;
     ASSERT_TRUE(cpu.execute(5) == 5);
     ASSERT_TRUE(cpu[0x12] == 0x42);
 
     // Zero page x
     cpu.reset();
-    cpu[RESET_LOC] = INC_ZPX;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = INC_ZPX;
+    cpu[RESET_START + 1] = 0x12;
     cpu.X = 0x10;
     cpu[0x22] = 0x41;
     ASSERT_TRUE(cpu.execute(6) == 6);
@@ -506,8 +507,8 @@ TEST_F(INC_DEC, Increment) {
 
     // Zero page x wrap
     cpu.reset();
-    cpu[RESET_LOC] = INC_ZPX;
-    cpu[RESET_LOC + 1] = 0xF5;
+    cpu[RESET_START] = INC_ZPX;
+    cpu[RESET_START + 1] = 0xF5;
     cpu.X = 0x10;
     cpu[0x05] = 0x41;
     ASSERT_TRUE(cpu.execute(6) == 6);
@@ -515,18 +516,18 @@ TEST_F(INC_DEC, Increment) {
 
     // Absolute
     cpu.reset();
-    cpu[RESET_LOC] = INC_ABS;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = INC_ABS;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0x41;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x1234] == 0x42);
 
     // Absolute x
     cpu.reset();
-    cpu[RESET_LOC] = INC_ABX;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = INC_ABX;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.X = 0x6;
     cpu[0x123A] = 0x41;
     ASSERT_TRUE(cpu.execute(7) == 7);
@@ -544,16 +545,16 @@ TEST_F(INC_DEC, IncrementY) {
 }
 TEST_F(INC_DEC, Decrement) {
     // Zero page
-    cpu[RESET_LOC] = DEC_ZPG;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = DEC_ZPG;
+    cpu[RESET_START + 1] = 0x12;
     cpu[0x12] = 0x43;
     ASSERT_TRUE(cpu.execute(5) == 5);
     ASSERT_TRUE(cpu[0x12] == 0x42);
 
     // Zero page x
     cpu.reset();
-    cpu[RESET_LOC] = DEC_ZPX;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = DEC_ZPX;
+    cpu[RESET_START + 1] = 0x12;
     cpu.X = 0x10;
     cpu[0x22] = 0x43;
     ASSERT_TRUE(cpu.execute(6) == 6);
@@ -561,8 +562,8 @@ TEST_F(INC_DEC, Decrement) {
 
     // Zero page x wrap
     cpu.reset();
-    cpu[RESET_LOC] = DEC_ZPX;
-    cpu[RESET_LOC + 1] = 0xF5;
+    cpu[RESET_START] = DEC_ZPX;
+    cpu[RESET_START + 1] = 0xF5;
     cpu.X = 0x10;
     cpu[0x05] = 0x43;
     ASSERT_TRUE(cpu.execute(6) == 6);
@@ -570,18 +571,18 @@ TEST_F(INC_DEC, Decrement) {
 
     // Absolute
     cpu.reset();
-    cpu[RESET_LOC] = DEC_ABS;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = DEC_ABS;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0x43;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x1234] == 0x42);
 
     // Absolute x
     cpu.reset();
-    cpu[RESET_LOC] = DEC_ABX;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = DEC_ABX;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.X = 0x6;
     cpu[0x123A] = 0x43;
     ASSERT_TRUE(cpu.execute(7) == 7);
@@ -602,8 +603,8 @@ TEST_F(INC_DEC, DecrementY) {
 // And
 void and_common_zero_page(CPU& cpu, u8 andInst, u8 cycles, u8* offsetReg = nullptr, u8 offsetVal = 0) {
     // No wrap with offset
-    cpu[RESET_LOC] = andInst;
-    cpu[RESET_LOC + 1] = 0x50;
+    cpu[RESET_START] = andInst;
+    cpu[RESET_START + 1] = 0x50;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu.A = 0x42;
     cpu[(u8) (0x50 + offsetVal)] = 0xF0;
@@ -615,8 +616,8 @@ void and_common_zero_page(CPU& cpu, u8 andInst, u8 cycles, u8* offsetReg = nullp
         cpu.reset();
         offsetVal = 0xFF;   // Force wrap
         *offsetReg = offsetVal;
-        cpu[RESET_LOC] = andInst;
-        cpu[RESET_LOC + 1] = 0x50;
+        cpu[RESET_START] = andInst;
+        cpu[RESET_START + 1] = 0x50;
         cpu.A = 0x42;
         cpu[(u8) (0x50 + offsetVal)] = 0x0F;
         ASSERT_TRUE(cpu.execute(cycles) == cycles);
@@ -626,9 +627,9 @@ void and_common_zero_page(CPU& cpu, u8 andInst, u8 cycles, u8* offsetReg = nullp
 
 void and_common_absolute(CPU& cpu, u8 andInst, u32 cycles, u8* offsetReg = nullptr, u8 offsetVal = 0) {
     // No page cross
-    cpu[RESET_LOC] = andInst;
-    cpu[RESET_LOC + 1] = 0x68;
-    cpu[RESET_LOC + 2] = 0x24;
+    cpu[RESET_START] = andInst;
+    cpu[RESET_START + 1] = 0x68;
+    cpu[RESET_START + 2] = 0x24;
     cpu.A = 0x42;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu[0x2468 + offsetVal] = 0xF0;
@@ -639,9 +640,9 @@ void and_common_absolute(CPU& cpu, u8 andInst, u32 cycles, u8* offsetReg = nullp
     if (offsetReg != nullptr) {
         cpu.reset();
         offsetVal = 0xFF;
-        cpu[RESET_LOC] = andInst;
-        cpu[RESET_LOC + 1] = 0x68;
-        cpu[RESET_LOC + 2] = 0x24;
+        cpu[RESET_START] = andInst;
+        cpu[RESET_START + 1] = 0x68;
+        cpu[RESET_START + 2] = 0x24;
         cpu.A = 0x42;
         if (offsetReg != nullptr) { *offsetReg = offsetVal; }
         cpu[0x2468 + offsetVal] = 0xF0;
@@ -652,8 +653,8 @@ void and_common_absolute(CPU& cpu, u8 andInst, u32 cycles, u8* offsetReg = nullp
 
 TEST_F(AND, Immediate) {
     // Zero
-    cpu[RESET_LOC] = AND_IMM;
-    cpu[RESET_LOC + 1] = 0x0;
+    cpu[RESET_START] = AND_IMM;
+    cpu[RESET_START + 1] = 0x0;
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
@@ -662,8 +663,8 @@ TEST_F(AND, Immediate) {
 
     // Positive
     cpu.reset();
-    cpu[RESET_LOC] = AND_IMM;
-    cpu[RESET_LOC + 1] = 0x3C;
+    cpu[RESET_START] = AND_IMM;
+    cpu[RESET_START + 1] = 0x3C;
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x30);
@@ -672,8 +673,8 @@ TEST_F(AND, Immediate) {
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = AND_IMM;
-    cpu[RESET_LOC + 1] = 0x8F;
+    cpu[RESET_START] = AND_IMM;
+    cpu[RESET_START + 1] = 0x8F;
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x80);
@@ -686,9 +687,9 @@ TEST_F(AND, Absolute)   { and_common_absolute (cpu, AND_ABS, 4); }
 TEST_F(AND, AbsoluteX)  { and_common_absolute (cpu, AND_ABX, 4, &cpu.X, 0x10); }
 TEST_F(AND, AbsoluteY)  { and_common_absolute (cpu, AND_ABY, 4, &cpu.Y, 0x10);}
 TEST_F(AND, IndirectX)  {
-    cpu[RESET_LOC] = AND_IDX;
+    cpu[RESET_START] = AND_IDX;
     cpu.A = 0x12;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.X = 0x5;
     cpu[0x0015] = 0x34;
     cpu[0x0016] = 0x12;     // Should store to 0x1234
@@ -698,9 +699,9 @@ TEST_F(AND, IndirectX)  {
 }
 TEST_F(AND, IndirectY)  {
     // No page cross
-    cpu[RESET_LOC] = AND_IDY;
+    cpu[RESET_START] = AND_IDY;
     cpu.A = 0x12;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.Y = 0x5;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;     // Should store to 0x1234 + 0x5
@@ -710,9 +711,9 @@ TEST_F(AND, IndirectY)  {
 
     // Page cross
     cpu.reset();
-    cpu[RESET_LOC] = AND_IDY;
+    cpu[RESET_START] = AND_IDY;
     cpu.A = 0x12;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.Y = 0xF2;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;     // Should store to 0x1234 + 0xF2
@@ -725,8 +726,8 @@ TEST_F(AND, IndirectY)  {
 // Eor (exclusive or)
 void eor_common_zero_page(CPU& cpu, u8 eorInst, u8 cycles, u8* offsetReg = nullptr, u8 offsetVal = 0) {
     // No wrap with offset
-    cpu[RESET_LOC] = eorInst;
-    cpu[RESET_LOC + 1] = 0x50;
+    cpu[RESET_START] = eorInst;
+    cpu[RESET_START + 1] = 0x50;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu.A = 0xF0;
     cpu[(u8) (0x50 + offsetVal)] = 0x55;
@@ -738,8 +739,8 @@ void eor_common_zero_page(CPU& cpu, u8 eorInst, u8 cycles, u8* offsetReg = nullp
         cpu.reset();
         offsetVal = 0xFF;   // Force wrap
         *offsetReg = offsetVal;
-        cpu[RESET_LOC] = eorInst;
-        cpu[RESET_LOC + 1] = 0x50;
+        cpu[RESET_START] = eorInst;
+        cpu[RESET_START + 1] = 0x50;
         cpu.A = 0xF0;
         cpu[(u8) (0x50 + offsetVal)] = 0x55;
         ASSERT_TRUE(cpu.execute(cycles) == cycles);
@@ -749,9 +750,9 @@ void eor_common_zero_page(CPU& cpu, u8 eorInst, u8 cycles, u8* offsetReg = nullp
 
 void eor_common_absolute(CPU& cpu, u8 eorInst, u32 cycles, u8* offsetReg = nullptr, u8 offsetVal = 0) {
     // No page cross
-    cpu[RESET_LOC] = eorInst;
-    cpu[RESET_LOC + 1] = 0x68;
-    cpu[RESET_LOC + 2] = 0x24;
+    cpu[RESET_START] = eorInst;
+    cpu[RESET_START + 1] = 0x68;
+    cpu[RESET_START + 2] = 0x24;
     cpu.A = 0xF0;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu[0x2468 + offsetVal] = 0x55;
@@ -762,9 +763,9 @@ void eor_common_absolute(CPU& cpu, u8 eorInst, u32 cycles, u8* offsetReg = nullp
     if (offsetReg != nullptr) {
         cpu.reset();
         offsetVal = 0xFF;
-        cpu[RESET_LOC] = eorInst;
-        cpu[RESET_LOC + 1] = 0x68;
-        cpu[RESET_LOC + 2] = 0x24;
+        cpu[RESET_START] = eorInst;
+        cpu[RESET_START + 1] = 0x68;
+        cpu[RESET_START + 2] = 0x24;
         cpu.A = 0xF0;
         if (offsetReg != nullptr) { *offsetReg = offsetVal; }
         cpu[0x2468 + offsetVal] = 0x55;
@@ -775,8 +776,8 @@ void eor_common_absolute(CPU& cpu, u8 eorInst, u32 cycles, u8* offsetReg = nullp
 
 TEST_F(EOR, Immediate) {
     // Zero
-    cpu[RESET_LOC] = EOR_IMM;
-    cpu[RESET_LOC + 1] = 0xF0;
+    cpu[RESET_START] = EOR_IMM;
+    cpu[RESET_START + 1] = 0xF0;
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
@@ -785,8 +786,8 @@ TEST_F(EOR, Immediate) {
 
     // Positive
     cpu.reset();
-    cpu[RESET_LOC] = EOR_IMM;
-    cpu[RESET_LOC + 1] = 0x55;
+    cpu[RESET_START] = EOR_IMM;
+    cpu[RESET_START + 1] = 0x55;
     cpu.A = 0x0F;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x5A);
@@ -795,8 +796,8 @@ TEST_F(EOR, Immediate) {
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = EOR_IMM;
-    cpu[RESET_LOC + 1] = 0x55;
+    cpu[RESET_START] = EOR_IMM;
+    cpu[RESET_START + 1] = 0x55;
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xA5);
@@ -809,9 +810,9 @@ TEST_F(EOR, Absolute)   { eor_common_absolute (cpu, EOR_ABS, 4); }
 TEST_F(EOR, AbsoluteX)  { eor_common_absolute (cpu, EOR_ABX, 4, &cpu.X, 0x10); }
 TEST_F(EOR, AbsoluteY)  { eor_common_absolute (cpu, EOR_ABY, 4, &cpu.Y, 0x10);}
 TEST_F(EOR, IndirectX)  {
-    cpu[RESET_LOC] = EOR_IDX;
+    cpu[RESET_START] = EOR_IDX;
     cpu.A = 0xF0;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.X = 0x5;
     cpu[0x0015] = 0x34;
     cpu[0x0016] = 0x12;     // Should store to 0x1234
@@ -821,9 +822,9 @@ TEST_F(EOR, IndirectX)  {
 }
 TEST_F(EOR, IndirectY)  {
     // No page cross
-    cpu[RESET_LOC] = EOR_IDY;
+    cpu[RESET_START] = EOR_IDY;
     cpu.A = 0xF0;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.Y = 0x5;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;     // Should store to 0x1234 + 0x5
@@ -833,9 +834,9 @@ TEST_F(EOR, IndirectY)  {
 
     // Page cross
     cpu.reset();
-    cpu[RESET_LOC] = EOR_IDY;
+    cpu[RESET_START] = EOR_IDY;
     cpu.A = 0xF0;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.Y = 0xF2;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;     // Should store to 0x1234 + 0xF2
@@ -848,8 +849,8 @@ TEST_F(EOR, IndirectY)  {
 // Or (ORA)
 void ora_common_zero_page(CPU& cpu, u8 oraInst, u8 cycles, u8* offsetReg = nullptr, u8 offsetVal = 0) {
     // No wrap with offset
-    cpu[RESET_LOC] = oraInst;
-    cpu[RESET_LOC + 1] = 0x50;
+    cpu[RESET_START] = oraInst;
+    cpu[RESET_START + 1] = 0x50;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu.A = 0xF0;
     cpu[(u8) (0x50 + offsetVal)] = 0x0C;
@@ -861,8 +862,8 @@ void ora_common_zero_page(CPU& cpu, u8 oraInst, u8 cycles, u8* offsetReg = nullp
         cpu.reset();
         offsetVal = 0xFF;   // Force wrap
         *offsetReg = offsetVal;
-        cpu[RESET_LOC] = oraInst;
-        cpu[RESET_LOC + 1] = 0x50;
+        cpu[RESET_START] = oraInst;
+        cpu[RESET_START + 1] = 0x50;
         cpu.A = 0xF0;
         cpu[(u8) (0x50 + offsetVal)] = 0x0D;
         ASSERT_TRUE(cpu.execute(cycles) == cycles);
@@ -872,9 +873,9 @@ void ora_common_zero_page(CPU& cpu, u8 oraInst, u8 cycles, u8* offsetReg = nullp
 
 void ora_common_absolute(CPU& cpu, u8 oraInst, u32 cycles, u8* offsetReg = nullptr, u8 offsetVal = 0) {
     // No page cross
-    cpu[RESET_LOC] = oraInst;
-    cpu[RESET_LOC + 1] = 0x68;
-    cpu[RESET_LOC + 2] = 0x24;
+    cpu[RESET_START] = oraInst;
+    cpu[RESET_START + 1] = 0x68;
+    cpu[RESET_START + 2] = 0x24;
     cpu.A = 0xF0;
     if (offsetReg != nullptr) { *offsetReg = offsetVal; }
     cpu[0x2468 + offsetVal] = 0x0C;
@@ -885,9 +886,9 @@ void ora_common_absolute(CPU& cpu, u8 oraInst, u32 cycles, u8* offsetReg = nullp
     if (offsetReg != nullptr) {
         cpu.reset();
         offsetVal = 0xFF;
-        cpu[RESET_LOC] = oraInst;
-        cpu[RESET_LOC + 1] = 0x68;
-        cpu[RESET_LOC + 2] = 0x24;
+        cpu[RESET_START] = oraInst;
+        cpu[RESET_START + 1] = 0x68;
+        cpu[RESET_START + 2] = 0x24;
         cpu.A = 0xF0;
         if (offsetReg != nullptr) { *offsetReg = offsetVal; }
         cpu[0x2468 + offsetVal] = 0x0D;
@@ -898,8 +899,8 @@ void ora_common_absolute(CPU& cpu, u8 oraInst, u32 cycles, u8* offsetReg = nullp
 
 TEST_F(ORA, Immediate) {
     // Zero
-    cpu[RESET_LOC] = ORA_IMM;
-    cpu[RESET_LOC + 1] = 0x0;
+    cpu[RESET_START] = ORA_IMM;
+    cpu[RESET_START + 1] = 0x0;
     cpu.A = 0x0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
@@ -908,8 +909,8 @@ TEST_F(ORA, Immediate) {
 
     // Positive
     cpu.reset();
-    cpu[RESET_LOC] = ORA_IMM;
-    cpu[RESET_LOC + 1] = 0x0F;
+    cpu[RESET_START] = ORA_IMM;
+    cpu[RESET_START + 1] = 0x0F;
     cpu.A = 0x1F;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x1F);
@@ -918,8 +919,8 @@ TEST_F(ORA, Immediate) {
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = ORA_IMM;
-    cpu[RESET_LOC + 1] = 0x55;
+    cpu[RESET_START] = ORA_IMM;
+    cpu[RESET_START + 1] = 0x55;
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xF5);
@@ -932,9 +933,9 @@ TEST_F(ORA, Absolute)   { ora_common_absolute (cpu, ORA_ABS, 4); }
 TEST_F(ORA, AbsoluteX)  { ora_common_absolute (cpu, ORA_ABX, 4, &cpu.X, 0x10); }
 TEST_F(ORA, AbsoluteY)  { ora_common_absolute (cpu, ORA_ABY, 4, &cpu.Y, 0x10);}
 TEST_F(ORA, IndirectX)  {
-    cpu[RESET_LOC] = ORA_IDX;
+    cpu[RESET_START] = ORA_IDX;
     cpu.A = 0xF0;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.X = 0x5;
     cpu[0x0015] = 0x34;
     cpu[0x0016] = 0x12;     // Should store to 0x1234
@@ -944,9 +945,9 @@ TEST_F(ORA, IndirectX)  {
 }
 TEST_F(ORA, IndirectY)  {
     // No page cross
-    cpu[RESET_LOC] = ORA_IDY;
+    cpu[RESET_START] = ORA_IDY;
     cpu.A = 0xF0;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.Y = 0x5;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;     // Should store to 0x1234 + 0x5
@@ -956,9 +957,9 @@ TEST_F(ORA, IndirectY)  {
 
     // Page cross
     cpu.reset();
-    cpu[RESET_LOC] = ORA_IDY;
+    cpu[RESET_START] = ORA_IDY;
     cpu.A = 0xF0;
-    cpu[RESET_LOC + 1] = 0x10;  // zp addr
+    cpu[RESET_START + 1] = 0x10;  // zp addr
     cpu.Y = 0xF2;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;     // Should store to 0x1234 + 0xF2
@@ -971,7 +972,7 @@ TEST_F(ORA, IndirectY)  {
 // ASL
 TEST_F(ASL, Accumulator) {
     // No carry
-    cpu[RESET_LOC] = ASL_ACC;
+    cpu[RESET_START] = ASL_ACC;
     cpu.A = 0x08;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x10);
@@ -979,7 +980,7 @@ TEST_F(ASL, Accumulator) {
 
     // Carry
     cpu.reset();
-    cpu[RESET_LOC] = ASL_ACC;
+    cpu[RESET_START] = ASL_ACC;
     cpu.A = 0xFF;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xFE);
@@ -987,7 +988,7 @@ TEST_F(ASL, Accumulator) {
 
     // Zero
     cpu.reset();
-    cpu[RESET_LOC] = ASL_ACC;
+    cpu[RESET_START] = ASL_ACC;
     cpu.A = 0x80;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
@@ -995,7 +996,7 @@ TEST_F(ASL, Accumulator) {
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = ASL_ACC;
+    cpu[RESET_START] = ASL_ACC;
     cpu.A = 0x40;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x80);
@@ -1003,32 +1004,32 @@ TEST_F(ASL, Accumulator) {
 }
 // Assume flags are set correctly now, only test shift is correct
 TEST_F(ASL, ZeroPage) {
-    cpu[RESET_LOC] = ASL_ZPG;
-    cpu[RESET_LOC + 1] = 0x42;
+    cpu[RESET_START] = ASL_ZPG;
+    cpu[RESET_START + 1] = 0x42;
     cpu[0x42] = 0x12;
     ASSERT_TRUE(cpu.execute(5) == 5);
     ASSERT_TRUE(cpu[0x42] == 0x24);
 }
 TEST_F(ASL, ZeroPageX) {
-    cpu[RESET_LOC] = ASL_ZPX;
-    cpu[RESET_LOC + 1] = 0x42;
+    cpu[RESET_START] = ASL_ZPX;
+    cpu[RESET_START + 1] = 0x42;
     cpu.X = 0x10;
     cpu[0x52] = 0x12;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x52] == 0x24);
 }
 TEST_F(ASL, Absolute) {
-    cpu[RESET_LOC] = ASL_ABS;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = ASL_ABS;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0x12;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x1234] == 0x24);
 }
 TEST_F(ASL, AbsoluteX) {
-    cpu[RESET_LOC] = ASL_ABX;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = ASL_ABX;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.X = 0x1;
     cpu[0x1235] = 0x12;
     ASSERT_TRUE(cpu.execute(7) == 7);
@@ -1039,7 +1040,7 @@ TEST_F(ASL, AbsoluteX) {
 // LSR
 TEST_F(LSR, Accumulator) {
     // No carry
-    cpu[RESET_LOC] = LSR_ACC;
+    cpu[RESET_START] = LSR_ACC;
     cpu.A = 0x08;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x04);
@@ -1047,7 +1048,7 @@ TEST_F(LSR, Accumulator) {
 
     // Carry
     cpu.reset();
-    cpu[RESET_LOC] = LSR_ACC;
+    cpu[RESET_START] = LSR_ACC;
     cpu.A = 0xFF;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x7F);
@@ -1055,7 +1056,7 @@ TEST_F(LSR, Accumulator) {
 
     // Zero
     cpu.reset();
-    cpu[RESET_LOC] = LSR_ACC;
+    cpu[RESET_START] = LSR_ACC;
     cpu.A = 0x01;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
@@ -1063,32 +1064,32 @@ TEST_F(LSR, Accumulator) {
 }
 // Assume flags are set correctly now, only test shift is correct
 TEST_F(LSR, ZeroPage) {
-    cpu[RESET_LOC] = LSR_ZPG;
-    cpu[RESET_LOC + 1] = 0x42;
+    cpu[RESET_START] = LSR_ZPG;
+    cpu[RESET_START + 1] = 0x42;
     cpu[0x42] = 0x12;
     ASSERT_TRUE(cpu.execute(5) == 5);
     ASSERT_TRUE(cpu[0x42] == 0x09);
 }
 TEST_F(LSR, ZeroPageX) {
-    cpu[RESET_LOC] = LSR_ZPX;
-    cpu[RESET_LOC + 1] = 0x42;
+    cpu[RESET_START] = LSR_ZPX;
+    cpu[RESET_START + 1] = 0x42;
     cpu.X = 0x10;
     cpu[0x52] = 0x12;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x52] == 0x09);
 }
 TEST_F(LSR, Absolute) {
-    cpu[RESET_LOC] = LSR_ABS;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = LSR_ABS;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0x12;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x1234] == 0x09);
 }
 TEST_F(LSR, AbsoluteX) {
-    cpu[RESET_LOC] = LSR_ABX;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = LSR_ABX;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.X = 0x1;
     cpu[0x1235] = 0x12;
     ASSERT_TRUE(cpu.execute(7) == 7);
@@ -1099,7 +1100,7 @@ TEST_F(LSR, AbsoluteX) {
 // ROL
 TEST_F(ROL, Accumulator) {
     // No rotate bit
-    cpu[RESET_LOC] = ROL_ACC;
+    cpu[RESET_START] = ROL_ACC;
     cpu.A = 0x08;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x10);
@@ -1107,7 +1108,7 @@ TEST_F(ROL, Accumulator) {
 
     // Rotate bit
     cpu.reset();
-    cpu[RESET_LOC] = ROL_ACC;
+    cpu[RESET_START] = ROL_ACC;
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xE1);
@@ -1115,7 +1116,7 @@ TEST_F(ROL, Accumulator) {
 
     // Zero
     cpu.reset();
-    cpu[RESET_LOC] = ROL_ACC;
+    cpu[RESET_START] = ROL_ACC;
     cpu.A = 0x0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
@@ -1123,7 +1124,7 @@ TEST_F(ROL, Accumulator) {
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = ROL_ACC;
+    cpu[RESET_START] = ROL_ACC;
     cpu.A = 0x40;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x80);
@@ -1131,32 +1132,32 @@ TEST_F(ROL, Accumulator) {
 }
 // Assume flags are set correctly now, only test rotate is correct
 TEST_F(ROL, ZeroPage) {
-    cpu[RESET_LOC] = ROL_ZPG;
-    cpu[RESET_LOC + 1] = 0x42;
+    cpu[RESET_START] = ROL_ZPG;
+    cpu[RESET_START + 1] = 0x42;
     cpu[0x42] = 0xAA;
     ASSERT_TRUE(cpu.execute(5) == 5);
     ASSERT_TRUE(cpu[0x42] == 0x55);
 }
 TEST_F(ROL, ZeroPageX) {
-    cpu[RESET_LOC] = ROL_ZPX;
-    cpu[RESET_LOC + 1] = 0x42;
+    cpu[RESET_START] = ROL_ZPX;
+    cpu[RESET_START + 1] = 0x42;
     cpu.X = 0x10;
     cpu[0x52] = 0xAA;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x52] == 0x55);
 }
 TEST_F(ROL, Absolute) {
-    cpu[RESET_LOC] = ROL_ABS;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = ROL_ABS;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0xAA;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x1234] == 0x55);
 }
 TEST_F(ROL, AbsoluteX) {
-    cpu[RESET_LOC] = ROL_ABX;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = ROL_ABX;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.X = 0x1;
     cpu[0x1235] = 0xAA;
     ASSERT_TRUE(cpu.execute(7) == 7);
@@ -1167,7 +1168,7 @@ TEST_F(ROL, AbsoluteX) {
 // ROR
 TEST_F(ROR, Accumulator) {
     // No rotate bit
-    cpu[RESET_LOC] = ROR_ACC;
+    cpu[RESET_START] = ROR_ACC;
     cpu.A = 0x08;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x04);
@@ -1175,7 +1176,7 @@ TEST_F(ROR, Accumulator) {
 
     // Rotate bit
     cpu.reset();
-    cpu[RESET_LOC] = ROR_ACC;
+    cpu[RESET_START] = ROR_ACC;
     cpu.A = 0xF1;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xF8);
@@ -1183,7 +1184,7 @@ TEST_F(ROR, Accumulator) {
 
     // Zero
     cpu.reset();
-    cpu[RESET_LOC] = ROR_ACC;
+    cpu[RESET_START] = ROR_ACC;
     cpu.A = 0x0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
@@ -1191,7 +1192,7 @@ TEST_F(ROR, Accumulator) {
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = ROR_ACC;
+    cpu[RESET_START] = ROR_ACC;
     cpu.A = 0x01;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x80);
@@ -1199,32 +1200,32 @@ TEST_F(ROR, Accumulator) {
 }
 // Assume flags are set correctly now, only test rotate is correct
 TEST_F(ROR, ZeroPage) {
-    cpu[RESET_LOC] = ROR_ZPG;
-    cpu[RESET_LOC + 1] = 0x42;
+    cpu[RESET_START] = ROR_ZPG;
+    cpu[RESET_START + 1] = 0x42;
     cpu[0x42] = 0xE1;
     ASSERT_TRUE(cpu.execute(5) == 5);
     ASSERT_TRUE(cpu[0x42] == 0xF0);
 }
 TEST_F(ROR, ZeroPageX) {
-    cpu[RESET_LOC] = ROR_ZPX;
-    cpu[RESET_LOC + 1] = 0x42;
+    cpu[RESET_START] = ROR_ZPX;
+    cpu[RESET_START + 1] = 0x42;
     cpu.X = 0x10;
     cpu[0x52] = 0xE1;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x52] == 0xF0);
 }
 TEST_F(ROR, Absolute) {
-    cpu[RESET_LOC] = ROR_ABS;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = ROR_ABS;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0xE1;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x1234] == 0xF0);
 }
 TEST_F(ROR, AbsoluteX) {
-    cpu[RESET_LOC] = ROR_ABX;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = ROR_ABX;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.X = 0x1;
     cpu[0x1235] = 0xE1;
     ASSERT_TRUE(cpu.execute(7) == 7);
@@ -1234,55 +1235,55 @@ TEST_F(ROR, AbsoluteX) {
 
 // ADC
 TEST_F(ADC, Immediate) {
-    cpu[RESET_LOC] = ADC_IMM;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = ADC_IMM;
+    cpu[RESET_START + 1] = 0x12;
     cpu.A = 0x30;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x42);
 }
 TEST_F(ADC, ImmediateZeroFlag) {
-    cpu[RESET_LOC] = ADC_IMM;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = ADC_IMM;
+    cpu[RESET_START + 1] = 0x12;
     cpu.A = 0xEE;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
     ASSERT_TRUE(cpu.get_flag_z() == F_ZERO);
 }
 TEST_F(ADC, ImmediateNegativeFlag) {
-    cpu[RESET_LOC] = ADC_IMM;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = ADC_IMM;
+    cpu[RESET_START + 1] = 0x12;
     cpu.A = 0xE0;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xF2);
     ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 TEST_F(ADC, ImmediateCarryFlag) {
-    cpu[RESET_LOC] = ADC_IMM;
-    cpu[RESET_LOC + 1] = 0xEF;
+    cpu[RESET_START] = ADC_IMM;
+    cpu[RESET_START + 1] = 0xEF;
     cpu.A = 0x10;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xFF);
     ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
 }
 TEST_F(ADC, ImmediateWithCarryEnabled) {
-    cpu[RESET_LOC] = ADC_IMM;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = ADC_IMM;
+    cpu[RESET_START + 1] = 0x12;
     cpu.A = 0x30;
     cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x43);
 }
 TEST_F(ADC, ZeroPage) {
-    cpu[RESET_LOC] = ADC_ZPG;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = ADC_ZPG;
+    cpu[RESET_START + 1] = 0x12;
     cpu[0x12] = 0x40;
     cpu.A = 0x30;
     ASSERT_TRUE(cpu.execute(3) == 3);
     ASSERT_TRUE(cpu.A == 0x70);
 }
 TEST_F(ADC, ZeroPageX) {
-    cpu[RESET_LOC] = ADC_ZPX;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = ADC_ZPX;
+    cpu[RESET_START + 1] = 0x12;
     cpu[0x22] = 0x40;
     cpu.A = 0x30;
     cpu.X = 0x10;
@@ -1290,9 +1291,9 @@ TEST_F(ADC, ZeroPageX) {
     ASSERT_TRUE(cpu.A == 0x70);
 }
 TEST_F(ADC, Absolute) {
-    cpu[RESET_LOC] = ADC_ABS;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = ADC_ABS;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0x40;
     cpu.A = 0x30;
     ASSERT_TRUE(cpu.execute(4) == 4);
@@ -1300,9 +1301,9 @@ TEST_F(ADC, Absolute) {
 }
 TEST_F(ADC, AbsoluteX) {
     // No page cross
-    cpu[RESET_LOC] = ADC_ABX;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = ADC_ABX;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.X = 0x10;
     cpu[0x1244] = 0x40;
     cpu.A = 0x30;
@@ -1311,9 +1312,9 @@ TEST_F(ADC, AbsoluteX) {
 
     // Page cross
     cpu.reset();
-    cpu[RESET_LOC] = ADC_ABX;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = ADC_ABX;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.X = 0xFF;
     cpu[0x1333] = 0x40;
     cpu.A = 0x30;
@@ -1322,9 +1323,9 @@ TEST_F(ADC, AbsoluteX) {
 }
 TEST_F(ADC, AbsoluteY) {
     // No page cross
-    cpu[RESET_LOC] = ADC_ABY;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = ADC_ABY;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.Y = 0x11;
     cpu[0x1245] = 0x40;
     cpu.A = 0x30;
@@ -1333,9 +1334,9 @@ TEST_F(ADC, AbsoluteY) {
 
     // Page cross
     cpu.reset();
-    cpu[RESET_LOC] = ADC_ABY;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = ADC_ABY;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.Y = 0xF0;
     cpu[0x1324] = 0x40;
     cpu.A = 0x30;
@@ -1343,8 +1344,8 @@ TEST_F(ADC, AbsoluteY) {
     ASSERT_TRUE(cpu.A == 0x70);
 }
 TEST_F(ADC, IndirectX) {
-    cpu[RESET_LOC] = ADC_IDX;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = ADC_IDX;
+    cpu[RESET_START + 1] = 0x10;
     cpu.X = 0x5;
     cpu[0x0015] = 0x34;
     cpu[0x0016] = 0x12;
@@ -1355,8 +1356,8 @@ TEST_F(ADC, IndirectX) {
 }
 TEST_F(ADC, IndirectY) {
     // No page cross
-    cpu[RESET_LOC] = ADC_IDY;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = ADC_IDY;
+    cpu[RESET_START + 1] = 0x10;
     cpu.Y = 0x5;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;
@@ -1367,8 +1368,8 @@ TEST_F(ADC, IndirectY) {
 
     // Page cross
     cpu.reset();
-    cpu[RESET_LOC] = ADC_IDY;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = ADC_IDY;
+    cpu[RESET_START + 1] = 0x10;
     cpu.Y = 0xF2;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;
@@ -1381,55 +1382,55 @@ TEST_F(ADC, IndirectY) {
 
 // SBC
 TEST_F(SBC, Immediate) {
-    cpu[RESET_LOC] = SBC_IMM;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = SBC_IMM;
+    cpu[RESET_START + 1] = 0x12;
     cpu.A = 0x30;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x1E);
 }
 TEST_F(SBC, ImmediateZeroFlag) {
-    cpu[RESET_LOC] = SBC_IMM;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = SBC_IMM;
+    cpu[RESET_START + 1] = 0x12;
     cpu.A = 0x12;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
     ASSERT_TRUE(cpu.get_flag_z() == F_ZERO);
 }
 TEST_F(SBC, ImmediateNegativeFlag) {
-    cpu[RESET_LOC] = SBC_IMM;
-    cpu[RESET_LOC + 1] = 0x13;
+    cpu[RESET_START] = SBC_IMM;
+    cpu[RESET_START + 1] = 0x13;
     cpu.A = 0x12;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xFF);
     ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 TEST_F(SBC, ImmediateCarryFlag) {
-    cpu[RESET_LOC] = SBC_IMM;
-    cpu[RESET_LOC + 1] = 0x13;
+    cpu[RESET_START] = SBC_IMM;
+    cpu[RESET_START + 1] = 0x13;
     cpu.A = 0x12;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xFF);
     ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
 }
 TEST_F(SBC, ImmediateWithCarryEnabled) {
-    cpu[RESET_LOC] = SBC_IMM;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = SBC_IMM;
+    cpu[RESET_START + 1] = 0x12;
     cpu.A = 0x30;
     cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x1D);
 }
 TEST_F(SBC, ZeroPage) {
-    cpu[RESET_LOC] = SBC_ZPG;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = SBC_ZPG;
+    cpu[RESET_START + 1] = 0x12;
     cpu[0x12] = 0x40;
     cpu.A = 0x50;
     ASSERT_TRUE(cpu.execute(3) == 3);
     ASSERT_TRUE(cpu.A == 0x10);
 }
 TEST_F(SBC, ZeroPageX) {
-    cpu[RESET_LOC] = SBC_ZPX;
-    cpu[RESET_LOC + 1] = 0x12;
+    cpu[RESET_START] = SBC_ZPX;
+    cpu[RESET_START + 1] = 0x12;
     cpu[0x22] = 0x40;
     cpu.A = 0x50;
     cpu.X = 0x10;
@@ -1437,9 +1438,9 @@ TEST_F(SBC, ZeroPageX) {
     ASSERT_TRUE(cpu.A == 0x10);
 }
 TEST_F(SBC, Absolute) {
-    cpu[RESET_LOC] = SBC_ABS;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = SBC_ABS;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0x40;
     cpu.A = 0x50;
     ASSERT_TRUE(cpu.execute(4) == 4);
@@ -1447,9 +1448,9 @@ TEST_F(SBC, Absolute) {
 }
 TEST_F(SBC, AbsoluteX) {
     // No page cross
-    cpu[RESET_LOC] = SBC_ABX;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = SBC_ABX;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.X = 0x10;
     cpu[0x1244] = 0x40;
     cpu.A = 0x50;
@@ -1458,9 +1459,9 @@ TEST_F(SBC, AbsoluteX) {
 
     // Page cross
     cpu.reset();
-    cpu[RESET_LOC] = SBC_ABX;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = SBC_ABX;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.X = 0xFF;
     cpu[0x1333] = 0x40;
     cpu.A = 0x50;
@@ -1469,9 +1470,9 @@ TEST_F(SBC, AbsoluteX) {
 }
 TEST_F(SBC, AbsoluteY) {
     // No page cross
-    cpu[RESET_LOC] = SBC_ABY;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = SBC_ABY;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.Y = 0x11;
     cpu[0x1245] = 0x40;
     cpu.A = 0x50;
@@ -1480,9 +1481,9 @@ TEST_F(SBC, AbsoluteY) {
 
     // Page cross
     cpu.reset();
-    cpu[RESET_LOC] = SBC_ABY;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = SBC_ABY;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu.Y = 0xF0;
     cpu[0x1324] = 0x40;
     cpu.A = 0x50;
@@ -1490,8 +1491,8 @@ TEST_F(SBC, AbsoluteY) {
     ASSERT_TRUE(cpu.A == 0x10);
 }
 TEST_F(SBC, IndirectX) {
-    cpu[RESET_LOC] = SBC_IDX;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = SBC_IDX;
+    cpu[RESET_START + 1] = 0x10;
     cpu.X = 0x5;
     cpu[0x0015] = 0x34;
     cpu[0x0016] = 0x12;
@@ -1502,8 +1503,8 @@ TEST_F(SBC, IndirectX) {
 }
 TEST_F(SBC, IndirectY) {
     // No page cross
-    cpu[RESET_LOC] = SBC_IDY;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = SBC_IDY;
+    cpu[RESET_START + 1] = 0x10;
     cpu.Y = 0x5;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;
@@ -1514,8 +1515,8 @@ TEST_F(SBC, IndirectY) {
 
     // Page cross
     cpu.reset();
-    cpu[RESET_LOC] = SBC_IDY;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = SBC_IDY;
+    cpu[RESET_START + 1] = 0x10;
     cpu.Y = 0xF2;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;
@@ -1530,8 +1531,8 @@ TEST_F(SBC, IndirectY) {
 TEST_F(BIT, ZeroPage) {
     // Zero
     cpu.reset();
-    cpu[RESET_LOC] = BIT_ZPG;
-    cpu[RESET_LOC + 1] = 0x15;
+    cpu[RESET_START] = BIT_ZPG;
+    cpu[RESET_START + 1] = 0x15;
     cpu[0x15] = 0xF3;   // 0b 1111 0011
     cpu.A = 0x0C;       // 0b 0000 1100
     ASSERT_TRUE(cpu.execute(3) == 3);
@@ -1541,8 +1542,8 @@ TEST_F(BIT, ZeroPage) {
 
     // Not zero
     cpu.reset();
-    cpu[RESET_LOC] = BIT_ZPG;
-    cpu[RESET_LOC + 1] = 0x15;
+    cpu[RESET_START] = BIT_ZPG;
+    cpu[RESET_START + 1] = 0x15;
     cpu[0x15] = 0xF3;   // 0b 1111 0011
     cpu.A = 0x99;       // 0b 1001 1001
     ASSERT_TRUE(cpu.execute(3) == 3);   // Anded value should be 0b 1001 0001
@@ -1552,9 +1553,9 @@ TEST_F(BIT, ZeroPage) {
 }
 TEST_F(BIT, Absolute) {
     cpu.reset();
-    cpu[RESET_LOC] = BIT_ABS;
-    cpu[RESET_LOC + 1] = 0x15;
-    cpu[RESET_LOC + 2] = 0x14;
+    cpu[RESET_START] = BIT_ABS;
+    cpu[RESET_START + 1] = 0x15;
+    cpu[RESET_START + 2] = 0x14;
     cpu[0x1415] = 0xF3;     // 0b 1111 0011
     cpu.A = 0x99;           // 0b 1001 1001
     ASSERT_TRUE(cpu.execute(4) == 4);   // Anded value should be 0b 1001 0001
@@ -1567,8 +1568,8 @@ TEST_F(BIT, Absolute) {
 // CMP
 TEST_F(CMP, Immediate) {
     // Equal
-    cpu[RESET_LOC] = CMP_IMM;
-    cpu[RESET_LOC + 1] = 0x42;
+    cpu[RESET_START] = CMP_IMM;
+    cpu[RESET_START + 1] = 0x42;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
@@ -1577,8 +1578,8 @@ TEST_F(CMP, Immediate) {
 
     // Greater
     cpu.reset();
-    cpu[RESET_LOC] = CMP_IMM;
-    cpu[RESET_LOC + 1] = 0x21;
+    cpu[RESET_START] = CMP_IMM;
+    cpu[RESET_START + 1] = 0x21;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
@@ -1587,8 +1588,8 @@ TEST_F(CMP, Immediate) {
 
     // Less
     cpu.reset();
-    cpu[RESET_LOC] = CMP_IMM;
-    cpu[RESET_LOC + 1] = 0x42;
+    cpu[RESET_START] = CMP_IMM;
+    cpu[RESET_START + 1] = 0x42;
     cpu.A = 0x21;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
@@ -1597,8 +1598,8 @@ TEST_F(CMP, Immediate) {
 }
 // Just test for one result of comparison now
 TEST_F(CMP, ZeroPage) {
-    cpu[RESET_LOC] = CMP_ZPG;
-    cpu[RESET_LOC + 1] = 0x51;
+    cpu[RESET_START] = CMP_ZPG;
+    cpu[RESET_START + 1] = 0x51;
     cpu[0x51] = 0x31;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(3) == 3);
@@ -1607,8 +1608,8 @@ TEST_F(CMP, ZeroPage) {
     ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, ZeroPageX) {
-    cpu[RESET_LOC] = CMP_ZPX;
-    cpu[RESET_LOC + 1] = 0x51;
+    cpu[RESET_START] = CMP_ZPX;
+    cpu[RESET_START + 1] = 0x51;
     cpu.X = 0x10;
     cpu[0x61] = 0x31;
     cpu.A = 0x42;
@@ -1618,9 +1619,9 @@ TEST_F(CMP, ZeroPageX) {
     ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, Absolute) {
-    cpu[RESET_LOC] = CMP_ABS;
-    cpu[RESET_LOC + 1] = 0x51;
-    cpu[RESET_LOC + 2] = 0x74;
+    cpu[RESET_START] = CMP_ABS;
+    cpu[RESET_START + 1] = 0x51;
+    cpu[RESET_START + 2] = 0x74;
     cpu[0x7451] = 0x31;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(4) == 4);
@@ -1629,9 +1630,9 @@ TEST_F(CMP, Absolute) {
     ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, AbsoluteX) {
-    cpu[RESET_LOC] = CMP_ABX;
-    cpu[RESET_LOC + 1] = 0x51;
-    cpu[RESET_LOC + 2] = 0x74;
+    cpu[RESET_START] = CMP_ABX;
+    cpu[RESET_START + 1] = 0x51;
+    cpu[RESET_START + 2] = 0x74;
     cpu.X = 0x10;
     cpu[0x7461] = 0x31;
     cpu.A = 0x42;
@@ -1641,9 +1642,9 @@ TEST_F(CMP, AbsoluteX) {
     ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, AbsoluteY) {
-    cpu[RESET_LOC] = CMP_ABY;
-    cpu[RESET_LOC + 1] = 0x51;
-    cpu[RESET_LOC + 2] = 0x74;
+    cpu[RESET_START] = CMP_ABY;
+    cpu[RESET_START + 1] = 0x51;
+    cpu[RESET_START + 2] = 0x74;
     cpu.Y = 0x10;
     cpu[0x7461] = 0x31;
     cpu.A = 0x42;
@@ -1653,8 +1654,8 @@ TEST_F(CMP, AbsoluteY) {
     ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, IndirectX) {
-    cpu[RESET_LOC] = CMP_IDX;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = CMP_IDX;
+    cpu[RESET_START + 1] = 0x10;
     cpu.X = 0x5;
     cpu[0x0015] = 0x34;
     cpu[0x0016] = 0x12;
@@ -1667,8 +1668,8 @@ TEST_F(CMP, IndirectX) {
 }
 TEST_F(CMP, IndirectY) {
     // No page cross
-    cpu[RESET_LOC] = CMP_IDY;
-    cpu[RESET_LOC + 1] = 0x10;
+    cpu[RESET_START] = CMP_IDY;
+    cpu[RESET_START + 1] = 0x10;
     cpu.Y = 0x5;
     cpu[0x0010] = 0x34;
     cpu[0x0011] = 0x12;
@@ -1681,8 +1682,8 @@ TEST_F(CMP, IndirectY) {
 }
 // Since CPX and CPY are so similar to CMP, just test a little
 TEST_F(CMP, CPX_ImmediateSimple) {
-    cpu[RESET_LOC] = CPX_IMM;
-    cpu[RESET_LOC + 1] = 0x21;
+    cpu[RESET_START] = CPX_IMM;
+    cpu[RESET_START + 1] = 0x21;
     cpu.X = 0x42;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
@@ -1690,8 +1691,8 @@ TEST_F(CMP, CPX_ImmediateSimple) {
     ASSERT_TRUE(cpu.get_flag_n() == F_NON_ZERO);
 }
 TEST_F(CMP, CPY_ImmediateSimple) {
-    cpu[RESET_LOC] = CPY_IMM;
-    cpu[RESET_LOC + 1] = 0x21;
+    cpu[RESET_START] = CPY_IMM;
+    cpu[RESET_START + 1] = 0x21;
     cpu.Y = 0x42;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
@@ -1702,25 +1703,25 @@ TEST_F(CMP, CPY_ImmediateSimple) {
 
 // JMP
 TEST_F(JMP, Absolute) {
-    cpu[RESET_LOC] = JMP_ABS;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = JMP_ABS;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     ASSERT_TRUE(cpu.execute(3) == 3);
     ASSERT_TRUE(cpu.PC == 0x1234);
 }
 TEST_F(JMP, Indirect) {
-    cpu[RESET_LOC] = JMP_IND;
-    cpu[RESET_LOC + 1] = 0x34;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = JMP_IND;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0x04;
     cpu[0x1235] = 0x40;
     ASSERT_TRUE(cpu.execute(5) == 5);
     ASSERT_TRUE(cpu.PC == 0x4004);
 }
 TEST_F(JMP, IndirectBoundary) {
-    cpu[RESET_LOC] = JMP_IND;
-    cpu[RESET_LOC + 1] = 0xFF;
-    cpu[RESET_LOC + 2] = 0x12;
+    cpu[RESET_START] = JMP_IND;
+    cpu[RESET_START + 1] = 0xFF;
+    cpu[RESET_START + 2] = 0x12;
     cpu[0x1200] = 0xEE;
     cpu[0x12FF] = 0x04;
     cpu[0x1300] = 0x40;
@@ -1735,14 +1736,14 @@ TEST_F(JMP, IndirectBoundary) {
 
 // Push stack
 TEST_F(PUSH, PHA) {
-    cpu[RESET_LOC] = PHA_IMP;
+    cpu[RESET_START] = PHA_IMP;
     cpu.A = 0x42;
     ASSERT_TRUE(cpu.execute(3) == 3);
     ASSERT_TRUE(cpu.S == 0xfe);
     ASSERT_TRUE(cpu[0x01ff] == 0x42);
 }
 TEST_F(PUSH, PHP) {
-    cpu[RESET_LOC] = PHP_IMP;
+    cpu[RESET_START] = PHP_IMP;
     cpu.SR = 0b10101010;    // Arbitrary flags
     ASSERT_TRUE(cpu.execute(3) == 3);
     ASSERT_TRUE(cpu.S == 0xfe);
@@ -1752,7 +1753,7 @@ TEST_F(PUSH, PHP) {
 // Pull stack
 TEST_F(PULL, PLA) {
     // Zero
-    cpu[RESET_LOC] = PLA_IMP;
+    cpu[RESET_START] = PLA_IMP;
     cpu.A = 0x11;
     cpu[0x01ff] = 0x0; // In stack
     cpu.S = 0xfe;       // stack pointer in next free location
@@ -1764,7 +1765,7 @@ TEST_F(PULL, PLA) {
 
     // Positive
     cpu.reset();
-    cpu[RESET_LOC] = PLA_IMP;
+    cpu[RESET_START] = PLA_IMP;
     cpu.A = 0;
     cpu[0x01ff] = 0x42; // In stack
     cpu.S = 0xfe;       // stack pointer in next free location
@@ -1776,7 +1777,7 @@ TEST_F(PULL, PLA) {
 
     // Negative
     cpu.reset();
-    cpu[RESET_LOC] = PLA_IMP;
+    cpu[RESET_START] = PLA_IMP;
     cpu.A = 0;
     cpu[0x01ff] = 0xFF; // In stack
     cpu.S = 0xfe;       // stack pointer in next free location
@@ -1787,7 +1788,7 @@ TEST_F(PULL, PLA) {
     ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 TEST_F(PULL, PLP) {
-    cpu[RESET_LOC] = PLP_IMP;
+    cpu[RESET_START] = PLP_IMP;
     cpu.SR = 0;
     cpu[0x01ff] = 0x42; // In stack
     cpu.S = 0xfe;       // stack pointer in next free location
@@ -1915,4 +1916,25 @@ TEST_F(SUBROUTINE, SubroutineJumpToAndReturnFrom) {
     cpu[0x1236] = RTS_IMP;
     ASSERT_TRUE(cpu.execute(10) == 10);
     ASSERT_TRUE(cpu.PC == 0x4003);
+}
+
+
+// Interrupt
+TEST_F(INTERRUPT, BRK_and_RTI) {
+    // Set interrupt handler location
+    cpu[INT_VEC_LOC] = 0x34;
+    cpu[INT_VEC_LOC + 1] = 0x12;
+
+    // Generate interrupt
+    cpu[RESET_START] = BRK_IMP;
+    ASSERT_TRUE(cpu.execute(7) == 7);
+    ASSERT_TRUE(cpu.PC == 0x1234);
+
+    // Do something in interrupt and return
+    cpu[0x1234] = NOP_IMP;
+    cpu[0x1235] = NOP_IMP;
+    ASSERT_TRUE(cpu.execute(4) == 4);
+    cpu[0x1236] = RTI_IMP;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu.PC == RESET_START);  // Should return to original location
 }

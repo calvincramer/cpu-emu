@@ -202,9 +202,10 @@ JSR     jump subroutine
 RTS     return from subroutine
 
 # Interrupts
-BRK ....    break / interrupt
-RTI ....    return from interrupt
+BRK     break / interrupt
+RTI     return from interrupt
 
+# etc
 NOP     no operation
 ```
 
