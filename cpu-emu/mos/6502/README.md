@@ -189,17 +189,17 @@ PLA     pull accumulator
 PLP     pull processor status (SR)
 
 # Branching
-BCC ....    branch on carry clear
-BCS ....    branch on carry set
-BEQ ....    branch on equal (zero set)
-BMI ....    branch on minus (negative set)
-BNE ....    branch on not equal (zero clear)
-BPL ....    branch on plus (negative clear)
-BVC ....    branch on overflow clear
-BVS ....    branch on overflow set
+BCC     branch on carry clear
+BCS     branch on carry set
+BEQ     branch on equal (zero set)
+BMI     branch on minus (negative set)
+BNE     branch on not equal (zero clear)
+BPL     branch on plus (negative clear)
+BVC     branch on overflow clear
+BVS     branch on overflow set
 JMP     jump
-JSR ....    jump subroutine
-RTS ....    return from subroutine
+JSR     jump subroutine
+RTS     return from subroutine
 
 # Interrupts
 BRK ....    break / interrupt

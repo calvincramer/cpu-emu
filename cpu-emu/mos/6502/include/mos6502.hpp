@@ -248,15 +248,15 @@ namespace mos6502 {
         }
 
         // Push onto stack
-        inline void push(u8& reg) {
-            ram[S + 0x0100] = reg;
+        inline void push(u8 val) {
+            ram[S + 0x0100] = val;
             S -= 1;
         }
 
         // Pull from stack
-        inline void pull(u8& reg) {
+        inline u8 pull() {
             S += 1;
-            reg = ram[S + 0x0100];
+            return ram[S + 0x0100];
             // Need to clear stuff in stack?
         }
 
@@ -268,6 +268,19 @@ namespace mos6502 {
             u16 newPC = PC + ((s8) avo_ret.val);    // address is signed
             numCycles -= 1 + (2 * (u32) onDifferentPages(PC, newPC));
             PC = newPC;
+        }
+
+        inline void jump_sub_routine() {
+            u16 addrOnStack = PC + 2;
+            push(highByte(addrOnStack));
+            push(lowByte(addrOnStack));
+            PC = avo_ret.addr;
+        }
+
+        inline void return_sub_routine() {
+            u8 low = pull();
+            u8 high = pull();
+            PC = B2W(low, high) + 1;
         }
 
         // For execute() function, so we don't need to pass it around so much
@@ -325,7 +338,6 @@ namespace mos6502 {
         STX_ZPG = 0x86, STX_ZPY = 0x96, STX_ABS = 0x8E,
         STY_ZPG = 0x84, STY_ZPX = 0x94, STY_ABS = 0x8C,
         TAX_IMP = 0xAA, TAY_IMP = 0xA8, TSX_IMP = 0xBA, TXA_IMP = 0x8A, TXS_IMP = 0x9A, TYA_IMP = 0x98,
-        NOP_IMP = 0xEA,
         CLC_IMP = 0x18, CLD_IMP = 0xD8, CLI_IMP = 0x58, CLV_IMP = 0xB8,
         SEC_IMP = 0x38, SED_IMP = 0xF8, SEI_IMP = 0x78,
         INC_ZPG = 0xE6, INC_ZPX = 0xF6, INC_ABS = 0xEE, INC_ABX = 0xFE, INX_IMP = 0xE8, INY_IMP = 0xC8,
@@ -343,10 +355,12 @@ namespace mos6502 {
         CMP_IMM = 0xC9, CMP_ZPG = 0xC5, CMP_ZPX = 0xD5, CMP_ABS = 0xCD, CMP_ABX = 0xDD, CMP_ABY = 0xD9, CMP_IDX = 0xC1, CMP_IDY = 0xD1,
         CPX_IMM = 0xE0, CPX_ZPG = 0xE4, CPX_ABS = 0xEC,
         CPY_IMM = 0xC0, CPY_ZPG = 0xC4, CPY_ABS = 0xCC,
-        JMP_ABS = 0x4C, JMP_IND = 0x6C,
         PHA_IMP = 0x48, PHP_IMP = 0x08,
         PLA_IMP = 0x68, PLP_IMP = 0x28,
         BCC_REL = 0x90, BCS_REL = 0xB0, BEQ_REL = 0xF0, BMI_REL = 0x30, BNE_REL = 0xD0, BPL_REL = 0x10, BVC_REL = 0x50, BVS_REL = 0x70,
+        JMP_ABS = 0x4C, JMP_IND = 0x6C,
+        JSR_ABS = 0x20, RTS_IMP = 0x60,
+        NOP_IMP = 0xEA,
     };
 
     const AddrMode INSTR_GET_ADDR_MODE [256] = {
@@ -392,17 +406,17 @@ namespace mos6502 {
 
     /*
      * Number of bytes for each instruction, used to update PC
-     * JMP and BRANCH instructions set to 0 bytes, to change PC manually
+     * JMP, BRANCH, SUBROUTINE instructions set to 0 bytes, to change PC manually
      */
     const u8 INSTR_BYTES [256] = {
     // -0                      -8
         1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 0-
         0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 1-
-        3, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,    // 2-
+        0, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,    // 2-
         0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 3-
         1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 4-
         0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 5-
-        1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 6-
+        0, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 6-
         0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 7-
         0, 2, 0, 0, 2, 2, 2, 0, 1, 0, 1, 0, 3, 3, 3, 0,    // 8-
         0, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 0, 3, 0, 0,    // 9-

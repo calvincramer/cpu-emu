@@ -66,6 +66,7 @@ class JMP           : public SetupCPU_F {};
 class PUSH          : public SetupCPU_F {};
 class PULL          : public SetupCPU_F {};
 class BRANCH        : public SetupCPU_F {};
+class SUBROUTINE    : public SetupCPU_F {};
 
 
 TEST_F(Api, Reset) { cpu.reset(); }
@@ -1896,4 +1897,22 @@ TEST_F(BRANCH, BVS_REL) {
     cpu.set_flag_v(1);
     ASSERT_TRUE(cpu.execute(3) == 3);
     ASSERT_TRUE(cpu.PC == start + 127);
+}
+
+
+// Subroutine test
+TEST_F(SUBROUTINE, SubroutineJumpToAndReturnFrom) {
+    cpu.PC = 0x4000;
+    // Jump to subroutine
+    cpu[0x4000] = JSR_ABS;
+    cpu[0x4001] = 0x34;
+    cpu[0x4002] = 0x12;
+    ASSERT_TRUE(cpu.execute(6) == 6);
+    ASSERT_TRUE(cpu.PC == 0x1234);
+    // subroutine doesn't do anything except return
+    cpu[0x1234] = NOP_IMP;
+    cpu[0x1235] = NOP_IMP;
+    cpu[0x1236] = RTS_IMP;
+    ASSERT_TRUE(cpu.execute(10) == 10);
+    ASSERT_TRUE(cpu.PC == 0x4003);
 }

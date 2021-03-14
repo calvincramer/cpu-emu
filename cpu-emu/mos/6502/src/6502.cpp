@@ -98,8 +98,8 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
                 jmp();                                                          break;
             case PHA_IMP: push(A);                                              break;
             case PHP_IMP: push(SR);                                             break;
-            case PLA_IMP: pull(A); set_ZN_flags(A);                             break;
-            case PLP_IMP: pull(SR);                                             break;
+            case PLA_IMP: A = pull(); set_ZN_flags(A);                          break;
+            case PLP_IMP: SR = pull();                                          break;
             case BCC_REL: branch(get_flag_c() == 0);                            break;
             case BCS_REL: branch(get_flag_c() == 1);                            break;
             case BEQ_REL: branch(get_flag_z() == 1);                            break;
@@ -108,6 +108,8 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
             case BPL_REL: branch(get_flag_n() == 0);                            break;
             case BVC_REL: branch(get_flag_v() == 0);                            break;
             case BVS_REL: branch(get_flag_v() == 1);                            break;
+            case JSR_ABS: jump_sub_routine();                                   break;
+            case RTS_IMP: return_sub_routine();                                 break;
 
             // Invalid instruction
             default: {
