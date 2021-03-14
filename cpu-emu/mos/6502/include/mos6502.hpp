@@ -20,6 +20,8 @@ inline u8 highByte(u16 x) { return x >> 8; }
 inline u1 signBit(u8 x)   { return x >> 7; }
 inline u1 lowBit(u8 x)    { return x &  0x01;}
 
+inline u1 onDifferentPages(u16 x, u16 y) { return highByte(x) != highByte(y); }
+
 namespace mos6502 {
     // Constants
     constexpr u32 MEM_MAX       = 1 << 16;  // Max amount of memory
@@ -111,7 +113,7 @@ namespace mos6502 {
             return { 0xFFFF, 0xFF, 0 };    // Implied register
         }
         avo addr_mode_get_imm() {
-            return { 0xFFFF, ram[PC + 1], 0 };
+            return { 0xFFFF, ram[PC+1], 0 };
         }
         avo addr_mode_get_zp() {
             u8 addr = (u8) ram[PC+1];
@@ -159,9 +161,6 @@ namespace mos6502 {
             u16 addr = Y + B2W(ram[ram[PC+1]], ram[(u8) (ram[PC+1] + 1)]);
             return { addr, ram[addr], Y };
         }
-        avo addr_mode_get_relative() {
-            return { 0x0, 0x0, 0x0 };   // TODO
-        }
         avo addr_mode_get_null() {
             return { 0x0, 0x0, 0x0 };
         }
@@ -180,7 +179,7 @@ namespace mos6502 {
             &CPU::addr_mode_get_indexed_indirect,
             &CPU::addr_mode_get_indirect_indexed,
             &CPU::addr_mode_get_imp,
-            &CPU::addr_mode_get_relative,
+            &CPU::addr_mode_get_imm,    // Relative just get immediate value of next byte
             &CPU::addr_mode_get_null,
         };
 
@@ -190,7 +189,7 @@ namespace mos6502 {
         inline void load(u8& reg) {
             reg = avo_ret.val;
             if (am == ABX || am == ABY || am == IDY) {
-                numCycles -= (highByte(avo_ret.addr) != highByte(avo_ret.addr - avo_ret.offset));
+                numCycles -= onDifferentPages(avo_ret.addr, avo_ret.addr - avo_ret.offset);
             }
             set_ZN_flags(reg);
         }
@@ -218,7 +217,7 @@ namespace mos6502 {
         inline void arith(u8 (CPU::*mathOpFunc)(u8, u8)) {
             A = (this->*mathOpFunc)(A, avo_ret.val);
             if (am == ABX || am == ABY || am == IDY) {
-                numCycles -= (highByte(avo_ret.addr) != highByte(avo_ret.addr - avo_ret.offset));
+                numCycles -= onDifferentPages(avo_ret.addr, avo_ret.addr - avo_ret.offset);
             }
             set_ZN_flags(A);
         }
@@ -259,6 +258,16 @@ namespace mos6502 {
             S += 1;
             reg = ram[S + 0x0100];
             // Need to clear stuff in stack?
+        }
+
+        inline void branch(u1 branchCondResult) {
+            if (!branchCondResult) {
+                PC += 2;
+                return;
+            }
+            u16 newPC = PC + ((s8) avo_ret.val);    // address is signed
+            numCycles -= 1 + (2 * (u32) onDifferentPages(PC, newPC));
+            PC = newPC;
         }
 
         // For execute() function, so we don't need to pass it around so much
@@ -335,10 +344,9 @@ namespace mos6502 {
         CPX_IMM = 0xE0, CPX_ZPG = 0xE4, CPX_ABS = 0xEC,
         CPY_IMM = 0xC0, CPY_ZPG = 0xC4, CPY_ABS = 0xCC,
         JMP_ABS = 0x4C, JMP_IND = 0x6C,
-        PHA_IMP = 0x48,
-        PHP_IMP = 0x08,
-        PLA_IMP = 0x68,
-        PLP_IMP = 0x28,
+        PHA_IMP = 0x48, PHP_IMP = 0x08,
+        PLA_IMP = 0x68, PLP_IMP = 0x28,
+        BCC_REL = 0x90, BCS_REL = 0xB0, BEQ_REL = 0xF0, BMI_REL = 0x30, BNE_REL = 0xD0, BPL_REL = 0x10, BVC_REL = 0x50, BVS_REL = 0x70,
     };
 
     const AddrMode INSTR_GET_ADDR_MODE [256] = {
@@ -382,25 +390,27 @@ namespace mos6502 {
         2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0,     // F-
     };
 
-    // Number of bytes for each instruction
-    // JMP set to 0 bytes, even though it's 3, because we affect the PC
+    /*
+     * Number of bytes for each instruction, used to update PC
+     * JMP and BRANCH instructions set to 0 bytes, to change PC manually
+     */
     const u8 INSTR_BYTES [256] = {
     // -0                      -8
         1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 0-
-        2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 1-
+        0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 1-
         3, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,    // 2-
-        2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 3-
+        0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 3-
         1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 4-
-        2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 5-
+        0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 5-
         1, 2, 0, 0, 0, 2, 2, 0, 1, 2, 1, 0, 0, 3, 3, 0,    // 6-
-        2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 7-
+        0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // 7-
         0, 2, 0, 0, 2, 2, 2, 0, 1, 0, 1, 0, 3, 3, 3, 0,    // 8-
-        2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 0, 3, 0, 0,    // 9-
+        0, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 0, 3, 0, 0,    // 9-
         2, 2, 2, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,    // A-
-        2, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 3, 3, 3, 0,    // B-
+        0, 2, 0, 0, 2, 2, 2, 0, 1, 3, 1, 0, 3, 3, 3, 0,    // B-
         2, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,    // C-
-        2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // D-
+        0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // D-
         2, 2, 0, 0, 2, 2, 2, 0, 1, 2, 1, 0, 3, 3, 3, 0,    // E-
-        2, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // F-
+        0, 2, 0, 0, 0, 2, 2, 0, 1, 3, 0, 0, 0, 3, 3, 0,    // F-
     };
 }

@@ -65,6 +65,7 @@ class CMP           : public SetupCPU_F {};
 class JMP           : public SetupCPU_F {};
 class PUSH          : public SetupCPU_F {};
 class PULL          : public SetupCPU_F {};
+class BRANCH        : public SetupCPU_F {};
 
 
 TEST_F(Api, Reset) { cpu.reset(); }
@@ -1785,7 +1786,6 @@ TEST_F(PULL, PLA) {
     ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
 }
 TEST_F(PULL, PLP) {
-    cpu.reset();
     cpu[RESET_LOC] = PLP_IMP;
     cpu.SR = 0;
     cpu[0x01ff] = 0x42; // In stack
@@ -1793,4 +1793,107 @@ TEST_F(PULL, PLP) {
     ASSERT_TRUE(cpu.execute(4) == 4);
     ASSERT_TRUE(cpu.S == 0xff);
     ASSERT_TRUE(cpu.SR == 0x42);
+}
+
+
+// Branching instructions
+TEST_F(BRANCH, BCC_BranchFail) {
+    u16 start = 0x1000;
+    cpu.PC = start;
+    cpu[start] = BCC_REL;
+    cpu[start + 1] = 0x7F;  // +127 == +0x7F
+    cpu.set_flag_c(1);
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.PC == start + 2);
+}
+TEST_F(BRANCH, BCC_BranchPassSamePage) {
+    u16 start = 0x1000;
+    cpu.PC = start;
+    cpu[start] = BCC_REL;
+    cpu[start + 1] = 0x7F;  // +127 == +0x7F
+    cpu.set_flag_c(0);
+    ASSERT_TRUE(cpu.execute(3) == 3);
+    ASSERT_TRUE(cpu.PC == start + 127);
+}
+TEST_F(BRANCH, BCC_BranchPassDifferentPage) {
+    u16 start = 0x10F0;
+    cpu.PC = start;
+    cpu[start] = BCC_REL;
+    cpu[start + 1] = 0x7F;  // +127 == +0x7F
+    cpu.set_flag_c(0);
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu.PC == start + 127);
+}
+TEST_F(BRANCH, BCC_BranchBackwards) {
+    u16 start = 0x1000;
+    cpu.PC = start;
+    cpu[start] = BCC_REL;
+    cpu[start + 1] = 0x80;  // -128 == -0x80
+    cpu.set_flag_c(0);
+    ASSERT_TRUE(cpu.execute(5) == 5);
+    ASSERT_TRUE(cpu.PC == start - 128);
+}
+// Other branching instructions just single branch
+TEST_F(BRANCH, BCS_REL) {
+    u16 start = 0x1000;
+    cpu.PC = start;
+    cpu[start] = BCS_REL;
+    cpu[start + 1] = 0x7F;  // +127 == +0x7F
+    cpu.set_flag_c(1);
+    ASSERT_TRUE(cpu.execute(3) == 3);
+    ASSERT_TRUE(cpu.PC == start + 127);
+}
+TEST_F(BRANCH, BEQ_REL) {
+    u16 start = 0x1000;
+    cpu.PC = start;
+    cpu[start] = BEQ_REL;
+    cpu[start + 1] = 0x7F;  // +127 == +0x7F
+    cpu.set_flag_z(1);
+    ASSERT_TRUE(cpu.execute(3) == 3);
+    ASSERT_TRUE(cpu.PC == start + 127);
+}
+TEST_F(BRANCH, BMI_REL) {
+    u16 start = 0x1000;
+    cpu.PC = start;
+    cpu[start] = BMI_REL;
+    cpu[start + 1] = 0x7F;  // +127 == +0x7F
+    cpu.set_flag_n(1);
+    ASSERT_TRUE(cpu.execute(3) == 3);
+    ASSERT_TRUE(cpu.PC == start + 127);
+}
+TEST_F(BRANCH, BNE_REL) {
+    u16 start = 0x1000;
+    cpu.PC = start;
+    cpu[start] = BNE_REL;
+    cpu[start + 1] = 0x7F;  // +127 == +0x7F
+    cpu.set_flag_z(0);
+    ASSERT_TRUE(cpu.execute(3) == 3);
+    ASSERT_TRUE(cpu.PC == start + 127);
+}
+TEST_F(BRANCH, BPL_REL) {
+    u16 start = 0x1000;
+    cpu.PC = start;
+    cpu[start] = BPL_REL;
+    cpu[start + 1] = 0x7F;  // +127 == +0x7F
+    cpu.set_flag_n(0);
+    ASSERT_TRUE(cpu.execute(3) == 3);
+    ASSERT_TRUE(cpu.PC == start + 127);
+}
+TEST_F(BRANCH, BVC_REL) {
+    u16 start = 0x1000;
+    cpu.PC = start;
+    cpu[start] = BVC_REL;
+    cpu[start + 1] = 0x7F;  // +127 == +0x7F
+    cpu.set_flag_v(0);
+    ASSERT_TRUE(cpu.execute(3) == 3);
+    ASSERT_TRUE(cpu.PC == start + 127);
+}
+TEST_F(BRANCH, BVS_REL) {
+    u16 start = 0x1000;
+    cpu.PC = start;
+    cpu[start] = BVS_REL;
+    cpu[start + 1] = 0x7F;  // +127 == +0x7F
+    cpu.set_flag_v(1);
+    ASSERT_TRUE(cpu.execute(3) == 3);
+    ASSERT_TRUE(cpu.PC == start + 127);
 }
