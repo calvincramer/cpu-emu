@@ -1,5 +1,9 @@
 # MOS 6502
 
+## TODO
+
+* Decimal mode / BCD mode arithmetic
+
 ## Build
 ```sh
 # Debug
