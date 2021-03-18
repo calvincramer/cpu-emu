@@ -98,12 +98,14 @@ namespace mos6502 {
             op = op >> 1;
         }
         void rotate_left(u8& op) {      // Rotate left by 1
-            set_flag_c((signBit(op)) != 0);
+            u8 origOp = op;
             op = (op << 1) + get_flag_c();
+            set_flag_c((signBit(origOp)) != 0);
         }
         void rotate_right(u8& op) {     // Rotate right by 1
-            set_flag_c(lowBit(op));
+            u8 origOp = op;
             op = (op >> 1) + (get_flag_c() << 7);
+            set_flag_c(lowBit(origOp));
         }
 
         // Address, value, offset

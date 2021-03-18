@@ -68,6 +68,7 @@ class PULL          : public SetupCPU_F {};
 class BRANCH        : public SetupCPU_F {};
 class SUBROUTINE    : public SetupCPU_F {};
 class INTERRUPT     : public SetupCPU_F {};
+class OBELISK_TESTS : public SetupCPU_F {};
 
 
 TEST_F(Api, Reset) { cpu.reset(); }
@@ -1111,7 +1112,7 @@ TEST_F(ROL, Accumulator) {
     cpu[RESET_START] = ROL_ACC;
     cpu.A = 0xF0;
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.A == 0xE1);
+    ASSERT_TRUE(cpu.A == 0xE0);
     ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
 
     // Zero
@@ -1136,7 +1137,7 @@ TEST_F(ROL, ZeroPage) {
     cpu[RESET_START + 1] = 0x42;
     cpu[0x42] = 0xAA;
     ASSERT_TRUE(cpu.execute(5) == 5);
-    ASSERT_TRUE(cpu[0x42] == 0x55);
+    ASSERT_TRUE(cpu[0x42] == 0x54);
 }
 TEST_F(ROL, ZeroPageX) {
     cpu[RESET_START] = ROL_ZPX;
@@ -1144,7 +1145,7 @@ TEST_F(ROL, ZeroPageX) {
     cpu.X = 0x10;
     cpu[0x52] = 0xAA;
     ASSERT_TRUE(cpu.execute(6) == 6);
-    ASSERT_TRUE(cpu[0x52] == 0x55);
+    ASSERT_TRUE(cpu[0x52] == 0x54);
 }
 TEST_F(ROL, Absolute) {
     cpu[RESET_START] = ROL_ABS;
@@ -1152,7 +1153,7 @@ TEST_F(ROL, Absolute) {
     cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0xAA;
     ASSERT_TRUE(cpu.execute(6) == 6);
-    ASSERT_TRUE(cpu[0x1234] == 0x55);
+    ASSERT_TRUE(cpu[0x1234] == 0x54);
 }
 TEST_F(ROL, AbsoluteX) {
     cpu[RESET_START] = ROL_ABX;
@@ -1161,7 +1162,15 @@ TEST_F(ROL, AbsoluteX) {
     cpu.X = 0x1;
     cpu[0x1235] = 0xAA;
     ASSERT_TRUE(cpu.execute(7) == 7);
-    ASSERT_TRUE(cpu[0x1235] == 0x55);
+    ASSERT_TRUE(cpu[0x1235] == 0x54);
+}
+TEST_F(ROL, RotateWithCarrySet) {
+    cpu[RESET_START] = ROL_ACC;
+    cpu.A = 0x18;
+    cpu.set_flag_c(1);
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x31);
+    ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
 }
 
 
@@ -1178,6 +1187,7 @@ TEST_F(ROR, Accumulator) {
     cpu.reset();
     cpu[RESET_START] = ROR_ACC;
     cpu.A = 0xF1;
+    cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xF8);
     ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
@@ -1194,6 +1204,7 @@ TEST_F(ROR, Accumulator) {
     cpu.reset();
     cpu[RESET_START] = ROR_ACC;
     cpu.A = 0x01;
+    cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x80);
     ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
@@ -1203,6 +1214,7 @@ TEST_F(ROR, ZeroPage) {
     cpu[RESET_START] = ROR_ZPG;
     cpu[RESET_START + 1] = 0x42;
     cpu[0x42] = 0xE1;
+    cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(5) == 5);
     ASSERT_TRUE(cpu[0x42] == 0xF0);
 }
@@ -1210,6 +1222,7 @@ TEST_F(ROR, ZeroPageX) {
     cpu[RESET_START] = ROR_ZPX;
     cpu[RESET_START + 1] = 0x42;
     cpu.X = 0x10;
+    cpu.set_flag_c(1);
     cpu[0x52] = 0xE1;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x52] == 0xF0);
@@ -1219,6 +1232,7 @@ TEST_F(ROR, Absolute) {
     cpu[RESET_START + 1] = 0x34;
     cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0xE1;
+    cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu[0x1234] == 0xF0);
 }
@@ -1228,6 +1242,7 @@ TEST_F(ROR, AbsoluteX) {
     cpu[RESET_START + 2] = 0x12;
     cpu.X = 0x1;
     cpu[0x1235] = 0xE1;
+    cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(7) == 7);
     ASSERT_TRUE(cpu[0x1235] == 0xF0);
 }
@@ -1937,4 +1952,109 @@ TEST_F(INTERRUPT, BRK_and_RTI) {
     cpu[0x1236] = RTI_IMP;
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu.PC == RESET_START);  // Should return to original location
+}
+
+
+// Tests from http://www.obelisk.me.uk/6502/algorithms.html
+TEST_F(OBELISK_TESTS, ObelistTestSimpleMemoryOperationsClear16bits) {
+    cpu[RESET_START] = LDA_IMM;
+    cpu[RESET_START + 1] = 0;
+    cpu[RESET_START + 2] = STA_ZPG;
+    cpu[RESET_START + 3] = 0x10;
+    cpu[RESET_START + 4] = STA_ZPG;
+    cpu[RESET_START + 5] = 0x11;
+
+    for (u16 addr = 0x0; addr < 0x100; addr++) {
+        cpu[addr] = 0xff;
+    }
+
+    ASSERT_TRUE(cpu.execute(2 + 3 + 3) == 2 + 3 + 3);
+    ASSERT_TRUE(cpu[0x10] == 0);
+    ASSERT_TRUE(cpu[0x11] == 0);
+}
+TEST_F(OBELISK_TESTS, ObelistTestSimpleMemoryOperationsClear32bits) {
+    cpu[RESET_START] = LDA_IMM;
+    cpu[RESET_START + 1] = 0;
+    cpu[RESET_START + 2] = STA_ZPG;
+    cpu[RESET_START + 3] = 0x10;
+    cpu[RESET_START + 4] = STA_ZPG;
+    cpu[RESET_START + 5] = 0x11;
+    cpu[RESET_START + 6] = STA_ZPG;
+    cpu[RESET_START + 7] = 0x12;
+    cpu[RESET_START + 8] = STA_ZPG;
+    cpu[RESET_START + 9] = 0x13;
+
+    for (u16 addr = 0x0; addr < 0x100; addr++) {
+        cpu[addr] = 0xff;
+    }
+
+    ASSERT_TRUE(cpu.execute(2 + 3 + 3 + 3 + 3) == 2 + 3 + 3 + 3 + 3);
+    ASSERT_TRUE(cpu[0x10] == 0);
+    ASSERT_TRUE(cpu[0x11] == 0);
+    ASSERT_TRUE(cpu[0x12] == 0);
+    ASSERT_TRUE(cpu[0x13] == 0);
+}
+TEST_F(OBELISK_TESTS, ObelistTestSimpleMemoryOperationsSetWord) {
+    cpu[RESET_START] = LDA_IMM;
+    cpu[RESET_START + 1] = 0x34;
+    cpu[RESET_START + 2] = STA_ZPG;
+    cpu[RESET_START + 3] = 0x10;
+    cpu[RESET_START + 4] = LDA_IMM;
+    cpu[RESET_START + 5] = 0x12;
+    cpu[RESET_START + 6] = STA_ZPG;
+    cpu[RESET_START + 7] = 0x11;
+
+    for (u16 addr = 0x0; addr < 0x100; addr++) {
+        cpu[addr] = 0xff;
+    }
+
+    ASSERT_TRUE(cpu.execute(2 + 3 + 2 + 3) == 2 + 3 + 2 + 3);
+    ASSERT_TRUE(cpu[0x10] == 0x34);
+    ASSERT_TRUE(cpu[0x11] == 0x12);
+}
+TEST_F(OBELISK_TESTS, ObelistTest_EOR_Complement) {
+    cpu.A = 0xF0;
+    cpu[RESET_START] = EOR_IMM;
+    cpu[RESET_START + 1] = 0xFF;
+    ASSERT_TRUE(cpu.execute(2) == 2);
+    ASSERT_TRUE(cpu.A == 0x0F);
+}
+TEST_F(OBELISK_TESTS, ObelistTest_Shift16Left) {
+    cpu[RESET_START] = ASL_ZPG;
+    cpu[RESET_START + 1] = 0x10;
+    cpu[RESET_START + 2] = ROL_ZPG;
+    cpu[RESET_START + 3] = 0x11;
+
+    cpu[0x10] = 0xF4;
+    cpu[0x11] = 0xC0;
+    ASSERT_TRUE(cpu.execute(5 + 5) == 5 + 5);
+    ASSERT_TRUE(cpu[0x10] == 0xE8);
+    ASSERT_TRUE(cpu[0x11] == 0x81);
+}
+TEST_F(OBELISK_TESTS, ObelistTest_Shift16Right) {
+    cpu[RESET_START] = LSR_ZPG;
+    cpu[RESET_START + 1] = 0x11;
+    cpu[RESET_START + 2] = ROR_ZPG;
+    cpu[RESET_START + 3] = 0x10;
+
+    cpu[0x10] = 0x00;
+    cpu[0x11] = 0xFF;
+    ASSERT_TRUE(cpu.execute(5 + 5) == 5 + 5);
+    ASSERT_TRUE(cpu[0x10] == 0x80);
+    ASSERT_TRUE(cpu[0x11] == 0x7F);
+}
+TEST_F(OBELISK_TESTS, ObelistTest_Divide16bitSignedValueBy2) {
+    cpu[0x11] = 0xF1; // F108 = -3832. -3832 / 2 = -1916 = F884
+    cpu[0x10] = 0x08;
+    cpu[RESET_START] = LDA_ZPG;
+    cpu[RESET_START + 1] = 0x11;
+    cpu[RESET_START + 2] = ASL_ACC;
+    cpu[RESET_START + 3] = ROR_ZPG;
+    cpu[RESET_START + 4] = 0x11;
+    cpu[RESET_START + 5] = ROR_ZPG;
+    cpu[RESET_START + 6] = 0x10;
+
+    ASSERT_TRUE(cpu.execute(3 + 2 + 5 + 5) == 3 + 2 + 5 + 5);
+    ASSERT_TRUE(cpu[0x11] == 0xF8);
+    ASSERT_TRUE(cpu[0x10] == 0x84);
 }
