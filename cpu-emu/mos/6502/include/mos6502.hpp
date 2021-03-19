@@ -77,16 +77,16 @@ namespace mos6502 {
         u8 bitwise_eor(u8 op1, u8 op2) { return op1 ^ op2; }
         u8 bitwise_or(u8 op1, u8 op2)  { return op1 | op2; }
         u8 add(u8 op1, u8 op2) {
-            u8 val = op1 + op2 + get_flag_c();
+            u16 val = op1 + op2 + get_flag_c();
             set_flag_v(signBit(A) != signBit(val));
-            set_flag_c(get_flag_v());
-            return val;
+            set_flag_c((val & 0xFF00) != 0);    // Set if overflow
+            return (u8) val;
         }
         u8 sub(u8 op1, u8 op2) {
-            u8 val = op1 - op2 - get_flag_c();
+            u16 val = op1 - op2 - (1 - get_flag_c());
             set_flag_v(signBit(A) != signBit(val));
-            set_flag_c( !get_flag_v() );   // Cleared if overflow
-            return val;
+            set_flag_c((val & 0xFF00) == 0);    // Cleared if overflow
+            return (u8) val;
         }
 
         void shift_left(u8& op) {        // Arithmetic shift left by 1

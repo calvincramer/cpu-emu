@@ -1275,9 +1275,9 @@ TEST_F(ADC, ImmediateNegativeFlag) {
 TEST_F(ADC, ImmediateCarryFlag) {
     cpu[RESET_START] = ADC_IMM;
     cpu[RESET_START + 1] = 0xEF;
-    cpu.A = 0x10;
+    cpu.A = 0x20;
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.A == 0xFF);
+    ASSERT_TRUE(cpu.A == 0x0F);
     ASSERT_TRUE(cpu.get_flag_c() == F_YES_CARRY);
 }
 TEST_F(ADC, ImmediateWithCarryEnabled) {
@@ -1400,6 +1400,7 @@ TEST_F(SBC, Immediate) {
     cpu[RESET_START] = SBC_IMM;
     cpu[RESET_START + 1] = 0x12;
     cpu.A = 0x30;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x1E);
 }
@@ -1407,6 +1408,7 @@ TEST_F(SBC, ImmediateZeroFlag) {
     cpu[RESET_START] = SBC_IMM;
     cpu[RESET_START + 1] = 0x12;
     cpu.A = 0x12;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0);
     ASSERT_TRUE(cpu.get_flag_z() == F_ZERO);
@@ -1415,6 +1417,7 @@ TEST_F(SBC, ImmediateNegativeFlag) {
     cpu[RESET_START] = SBC_IMM;
     cpu[RESET_START + 1] = 0x13;
     cpu.A = 0x12;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xFF);
     ASSERT_TRUE(cpu.get_flag_n() == F_NEG);
@@ -1423,9 +1426,10 @@ TEST_F(SBC, ImmediateCarryFlag) {
     cpu[RESET_START] = SBC_IMM;
     cpu[RESET_START + 1] = 0x13;
     cpu.A = 0x12;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0xFF);
-    ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);
+    ASSERT_TRUE(cpu.get_flag_c() == F_NO_CARRY);    // Clear flag means carry
 }
 TEST_F(SBC, ImmediateWithCarryEnabled) {
     cpu[RESET_START] = SBC_IMM;
@@ -1433,13 +1437,14 @@ TEST_F(SBC, ImmediateWithCarryEnabled) {
     cpu.A = 0x30;
     cpu.set_flag_c(1);
     ASSERT_TRUE(cpu.execute(2) == 2);
-    ASSERT_TRUE(cpu.A == 0x1D);
+    ASSERT_TRUE(cpu.A == 0x1E);
 }
 TEST_F(SBC, ZeroPage) {
     cpu[RESET_START] = SBC_ZPG;
     cpu[RESET_START + 1] = 0x12;
     cpu[0x12] = 0x40;
     cpu.A = 0x50;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(3) == 3);
     ASSERT_TRUE(cpu.A == 0x10);
 }
@@ -1449,6 +1454,7 @@ TEST_F(SBC, ZeroPageX) {
     cpu[0x22] = 0x40;
     cpu.A = 0x50;
     cpu.X = 0x10;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(4) == 4);
     ASSERT_TRUE(cpu.A == 0x10);
 }
@@ -1458,6 +1464,7 @@ TEST_F(SBC, Absolute) {
     cpu[RESET_START + 2] = 0x12;
     cpu[0x1234] = 0x40;
     cpu.A = 0x50;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(4) == 4);
     ASSERT_TRUE(cpu.A == 0x10);
 }
@@ -1469,6 +1476,7 @@ TEST_F(SBC, AbsoluteX) {
     cpu.X = 0x10;
     cpu[0x1244] = 0x40;
     cpu.A = 0x50;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(4) == 4);
     ASSERT_TRUE(cpu.A == 0x10);
 
@@ -1480,6 +1488,7 @@ TEST_F(SBC, AbsoluteX) {
     cpu.X = 0xFF;
     cpu[0x1333] = 0x40;
     cpu.A = 0x50;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(5) == 5);
     ASSERT_TRUE(cpu.A == 0x10);
 }
@@ -1491,6 +1500,7 @@ TEST_F(SBC, AbsoluteY) {
     cpu.Y = 0x11;
     cpu[0x1245] = 0x40;
     cpu.A = 0x50;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(4) == 4);
     ASSERT_TRUE(cpu.A == 0x10);
 
@@ -1502,6 +1512,7 @@ TEST_F(SBC, AbsoluteY) {
     cpu.Y = 0xF0;
     cpu[0x1324] = 0x40;
     cpu.A = 0x50;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(5) == 5);
     ASSERT_TRUE(cpu.A == 0x10);
 }
@@ -1513,6 +1524,7 @@ TEST_F(SBC, IndirectX) {
     cpu[0x0016] = 0x12;
     cpu.A = 0x50;
     cpu[0x1234] = 0x40;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu.A == 0x10);
 }
@@ -1525,6 +1537,7 @@ TEST_F(SBC, IndirectY) {
     cpu[0x0011] = 0x12;
     cpu.A = 0x50;
     cpu[0x1239] = 0x40;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(5) == 5);
     ASSERT_TRUE(cpu.A == 0x10);
 
@@ -1537,6 +1550,7 @@ TEST_F(SBC, IndirectY) {
     cpu[0x0011] = 0x12;
     cpu.A = 0x50;
     cpu[0x1326] = 0x40;
+    cpu.set_flag_c(1);  // carry high to not subtract one
     ASSERT_TRUE(cpu.execute(6) == 6);
     ASSERT_TRUE(cpu.A == 0x10);
 }
@@ -1956,7 +1970,7 @@ TEST_F(INTERRUPT, BRK_and_RTI) {
 
 
 // Tests from http://www.obelisk.me.uk/6502/algorithms.html
-TEST_F(OBELISK_TESTS, ObelistTestSimpleMemoryOperationsClear16bits) {
+TEST_F(OBELISK_TESTS, SimpleMemoryOperationsClear16bits) {
     cpu[RESET_START] = LDA_IMM;
     cpu[RESET_START + 1] = 0;
     cpu[RESET_START + 2] = STA_ZPG;
@@ -1972,7 +1986,7 @@ TEST_F(OBELISK_TESTS, ObelistTestSimpleMemoryOperationsClear16bits) {
     ASSERT_TRUE(cpu[0x10] == 0);
     ASSERT_TRUE(cpu[0x11] == 0);
 }
-TEST_F(OBELISK_TESTS, ObelistTestSimpleMemoryOperationsClear32bits) {
+TEST_F(OBELISK_TESTS, SimpleMemoryOperationsClear32bits) {
     cpu[RESET_START] = LDA_IMM;
     cpu[RESET_START + 1] = 0;
     cpu[RESET_START + 2] = STA_ZPG;
@@ -1994,7 +2008,7 @@ TEST_F(OBELISK_TESTS, ObelistTestSimpleMemoryOperationsClear32bits) {
     ASSERT_TRUE(cpu[0x12] == 0);
     ASSERT_TRUE(cpu[0x13] == 0);
 }
-TEST_F(OBELISK_TESTS, ObelistTestSimpleMemoryOperationsSetWord) {
+TEST_F(OBELISK_TESTS, SimpleMemoryOperationsSetWord) {
     cpu[RESET_START] = LDA_IMM;
     cpu[RESET_START + 1] = 0x34;
     cpu[RESET_START + 2] = STA_ZPG;
@@ -2012,14 +2026,14 @@ TEST_F(OBELISK_TESTS, ObelistTestSimpleMemoryOperationsSetWord) {
     ASSERT_TRUE(cpu[0x10] == 0x34);
     ASSERT_TRUE(cpu[0x11] == 0x12);
 }
-TEST_F(OBELISK_TESTS, ObelistTest_EOR_Complement) {
+TEST_F(OBELISK_TESTS, EOR_Complement) {
     cpu.A = 0xF0;
     cpu[RESET_START] = EOR_IMM;
     cpu[RESET_START + 1] = 0xFF;
     ASSERT_TRUE(cpu.execute(2) == 2);
     ASSERT_TRUE(cpu.A == 0x0F);
 }
-TEST_F(OBELISK_TESTS, ObelistTest_Shift16Left) {
+TEST_F(OBELISK_TESTS, Shift16Left) {
     cpu[RESET_START] = ASL_ZPG;
     cpu[RESET_START + 1] = 0x10;
     cpu[RESET_START + 2] = ROL_ZPG;
@@ -2031,7 +2045,7 @@ TEST_F(OBELISK_TESTS, ObelistTest_Shift16Left) {
     ASSERT_TRUE(cpu[0x10] == 0xE8);
     ASSERT_TRUE(cpu[0x11] == 0x81);
 }
-TEST_F(OBELISK_TESTS, ObelistTest_Shift16Right) {
+TEST_F(OBELISK_TESTS, Shift16Right) {
     cpu[RESET_START] = LSR_ZPG;
     cpu[RESET_START + 1] = 0x11;
     cpu[RESET_START + 2] = ROR_ZPG;
@@ -2043,7 +2057,7 @@ TEST_F(OBELISK_TESTS, ObelistTest_Shift16Right) {
     ASSERT_TRUE(cpu[0x10] == 0x80);
     ASSERT_TRUE(cpu[0x11] == 0x7F);
 }
-TEST_F(OBELISK_TESTS, ObelistTest_Divide16bitSignedValueBy2) {
+TEST_F(OBELISK_TESTS, Divide16bitSignedValueBy2) {
     cpu[0x11] = 0xF1; // F108 = -3832. -3832 / 2 = -1916 = F884
     cpu[0x10] = 0x08;
     cpu[RESET_START] = LDA_ZPG;
@@ -2058,3 +2072,61 @@ TEST_F(OBELISK_TESTS, ObelistTest_Divide16bitSignedValueBy2) {
     ASSERT_TRUE(cpu[0x11] == 0xF8);
     ASSERT_TRUE(cpu[0x10] == 0x84);
 }
+TEST_F(OBELISK_TESTS, 16BitBinaryAddition) {
+    // 0x0FFF + 0x0FFF = 0x1FFE
+    u16 a_addr = 0x10;
+    u16 b_addr = 0x20;
+    u16 res_addr = 0x30;
+    cpu[a_addr + 1] = 0x0F;
+    cpu[a_addr]     = 0xFF;
+    cpu[b_addr + 1] = 0x0F;
+    cpu[b_addr]     = 0xFF;
+
+    cpu[RESET_START + 0] = CLC_IMP;
+    cpu[RESET_START + 1] = LDA_ZPG;
+    cpu[RESET_START + 2] = a_addr;
+    cpu[RESET_START + 3] = ADC_ZPG;
+    cpu[RESET_START + 4] = b_addr;
+    cpu[RESET_START + 5] = STA_ZPG;
+    cpu[RESET_START + 6] = res_addr;
+    cpu[RESET_START + 7] = LDA_ZPG;
+    cpu[RESET_START + 8] = a_addr + 1;  // Hard code addr, no offset just because
+    cpu[RESET_START + 9] = ADC_ZPG;
+    cpu[RESET_START + 10] = b_addr + 1;
+    cpu[RESET_START + 11] = STA_ZPG;
+    cpu[RESET_START + 12] = res_addr + 1;
+
+    ASSERT_TRUE(cpu.execute(2 + (3 * 6)) == 2 + (3 * 6));
+    ASSERT_TRUE(cpu[res_addr + 0] == 0xFE);
+    ASSERT_TRUE(cpu[res_addr + 1] == 0x1F);
+}
+TEST_F(OBELISK_TESTS, 16BitBinarySubtraction) {
+    // 0x8888 + 0x4FAA = 0x38DE
+    u16 a_addr = 0x10;
+    u16 b_addr = 0x20;
+    u16 res_addr = 0x30;
+    cpu[a_addr + 1] = 0x88;
+    cpu[a_addr]     = 0x88;
+    cpu[b_addr + 1] = 0x4F;
+    cpu[b_addr]     = 0xAA;
+
+    cpu[RESET_START + 0] = SEC_IMP;
+    cpu[RESET_START + 1] = LDA_ZPG;
+    cpu[RESET_START + 2] = a_addr;
+    cpu[RESET_START + 3] = SBC_ZPG;
+    cpu[RESET_START + 4] = b_addr;
+    cpu[RESET_START + 5] = STA_ZPG;
+    cpu[RESET_START + 6] = res_addr;
+    cpu[RESET_START + 7] = LDA_ZPG;
+    cpu[RESET_START + 8] = a_addr + 1;  // Hard code addr, no offset just because
+    cpu[RESET_START + 9] = SBC_ZPG;
+    cpu[RESET_START + 10] = b_addr + 1;
+    cpu[RESET_START + 11] = STA_ZPG;
+    cpu[RESET_START + 12] = res_addr + 1;
+
+    ASSERT_TRUE(cpu.execute(2 + (3 * 6)) == 2 + (3 * 6));
+    ASSERT_TRUE(cpu[res_addr + 0] == 0xDE);
+    ASSERT_TRUE(cpu[res_addr + 1] == 0x38);
+}
+
+// TODO Decimal arithmetic
