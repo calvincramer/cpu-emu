@@ -24,12 +24,12 @@ void mos6502::CPU::reset() {
 }
 
 // Returns -1 on illegal instruction
-u32 mos6502::CPU::execute(u32 p_numCycles) {
-    u32 numCyclesSave = p_numCycles;  // Original number of cycles to execute
+s32 mos6502::CPU::execute(s32 p_numCycles, bool forever) {
+    s32 numCyclesSave = p_numCycles;  // Original number of cycles to execute
     numCycles = p_numCycles;
     u8 currentInstr;
 
-    while (numCycles > 0) {
+    while (numCycles > 0 || forever) {
         // Get instruction and some common information needed when executing instruction
         currentInstr = getCurrentInstr();
         am = INSTR_GET_ADDR_MODE[currentInstr];
@@ -118,8 +118,10 @@ u32 mos6502::CPU::execute(u32 p_numCycles) {
 
             // Invalid instruction
             default: {
+#if 0
                 printf("BAD INSTRUCTION!!!!!!!!!!!!!!\n");
                 reset();
+#endif
                 return -1;
             }
         }

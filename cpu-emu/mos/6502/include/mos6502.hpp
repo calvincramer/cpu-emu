@@ -11,14 +11,19 @@ typedef std::uint16_t   u16;
 typedef std::uint32_t   u32;
 
 typedef std::int8_t     s8;
+typedef std::int32_t    s32;
 
 // Bytes to Wyde
 inline u16 B2W(u8 low, u8 high) { return (high << 8) + low; }
 
-inline u8 lowByte(u16 x)  { return x &  0x0F; }
+inline u8 lowByte(u16 x)  { return x & 0x000F; }
 inline u8 highByte(u16 x) { return x >> 8; }
 inline u1 signBit(u8 x)   { return x >> 7; }
-inline u1 lowBit(u8 x)    { return x &  0x01;}
+inline u1 lowBit(u8 x)    { return x & 0x01;}
+// Binary number (in 4-bit packed BCD) to decimal value
+// Note invalid BCD numbers are undocumented and undefined behavior
+inline u8 bin_2_dec(u8 x) { return (((x & 0xF0) >> 4) * 10) + (x & 0x0F); }
+inline u8 dec_2_bin(u8 x) { return ((x / 10) << 4) | (x % 10); }
 
 inline u1 onDifferentPages(u16 x, u16 y) { return highByte(x) != highByte(y); }
 
@@ -34,14 +39,14 @@ namespace mos6502 {
     // Temp
     constexpr u16 RESET_START           = 0x4000;   // Temporary
     // Flags
-    constexpr u8 FLAG_MASK_C = 0b00000001;
-    constexpr u8 FLAG_MASK_Z = 0b00000010;
-    constexpr u8 FLAG_MASK_I = 0b00000100;
-    constexpr u8 FLAG_MASK_D = 0b00001000;
-    constexpr u8 FLAG_MASK_B = 0b00010000;
-    constexpr u8 FLAG_MASK_NOT_USED = 0b00100000;
-    constexpr u8 FLAG_MASK_V = 0b01000000;
-    constexpr u8 FLAG_MASK_N = 0b10000000;
+    constexpr u8 FLAG_MASK_C            = 0b00000001;
+    constexpr u8 FLAG_MASK_Z            = 0b00000010;
+    constexpr u8 FLAG_MASK_I            = 0b00000100;
+    constexpr u8 FLAG_MASK_D            = 0b00001000;
+    constexpr u8 FLAG_MASK_B            = 0b00010000;
+    constexpr u8 FLAG_MASK_NOT_USED     = 0b00100000;
+    constexpr u8 FLAG_MASK_V            = 0b01000000;
+    constexpr u8 FLAG_MASK_N            = 0b10000000;
 
     constexpr u8 FLAG_INIT = FLAG_MASK_NOT_USED;
 
@@ -77,16 +82,38 @@ namespace mos6502 {
         u8 bitwise_eor(u8 op1, u8 op2) { return op1 ^ op2; }
         u8 bitwise_or(u8 op1, u8 op2)  { return op1 | op2; }
         u8 add(u8 op1, u8 op2) {
-            u16 val = op1 + op2 + get_flag_c();
-            set_flag_v(signBit(A) != signBit(val));
-            set_flag_c((val & 0xFF00) != 0);    // Set if overflow
-            return (u8) val;
+            if (get_flag_d() == 0) {    // Binary addition
+                u16 val = op1 + op2 + get_flag_c();
+                set_flag_v(signBit(A) != signBit(val));
+                set_flag_c((val & 0xFF00) != 0);    // Set if overflow
+                return (u8) val;
+            } else {                    // BCD addition
+                op1 = bin_2_dec(op1);
+                op2 = bin_2_dec(op2);
+                u8 val = op1 + op2 + get_flag_c();
+                // V flag undocumented undefined behavior in BCD
+                set_flag_c(val >= 100);
+                val = val % 100;
+                val = dec_2_bin(val);
+                return val;
+            }
         }
         u8 sub(u8 op1, u8 op2) {
-            u16 val = op1 - op2 - (1 - get_flag_c());
-            set_flag_v(signBit(A) != signBit(val));
-            set_flag_c((val & 0xFF00) == 0);    // Cleared if overflow
-            return (u8) val;
+            if (get_flag_d() == 0) {    // Binary subtraction
+                u16 val = op1 - op2 - (1 - get_flag_c());
+                set_flag_v(signBit(A) != signBit(val));
+                set_flag_c((val & 0xFF00) == 0);    // Cleared if overflow
+                return (u8) val;
+            } else {                    // BCD subtraction
+                op1 = bin_2_dec(op1);
+                op2 = bin_2_dec(op2);
+                u8 val = op1 - op2 - get_flag_c();
+                // V flag undocumented undefined behavior in BCD
+                set_flag_c(val < 100);
+                val = val % 100;
+                val = dec_2_bin(val);
+                return val;
+            }
         }
 
         void shift_left(u8& op) {        // Arithmetic shift left by 1
@@ -312,7 +339,7 @@ namespace mos6502 {
         }
 
         // For execute() function, so we don't need to pass it around so much
-        u32 numCycles;  // Number of cycles left to execute
+        s32 numCycles;  // Number of cycles left to execute
         AddrMode am;    // Address mode of current instruction
         avo avo_ret;    // address, val of addr, offset from current address mode
 
@@ -337,7 +364,7 @@ namespace mos6502 {
 
         // Methods
         void reset();
-        u32 execute(u32 numCycles);
+        s32 execute(s32 numCycles, bool forever = false);
         u8& operator[] (u16 i) { return this->ram[i]; }
 
         // Helper method for accessing flags

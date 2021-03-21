@@ -1,9 +1,5 @@
 # MOS 6502
 
-## TODO
-
-* Decimal mode / BCD mode arithmetic
-
 ## Build
 ```sh
 # Debug
@@ -75,7 +71,7 @@ $FFFE, $FFFF ... IRQ (Interrupt Request) vector
 * 0 - C - carry
 * 1 - Z - zero
 * 2 - I - interrupt (irq disable)
-* 3 - D - decimal
+* 3 - D - decimal (binary coded decimal mode, only affects ADC and SBC instructions)
 * 4 - B - break
 * 5 -     ignored
 * 6 - V - overflow
@@ -226,7 +222,8 @@ $FA             LDA #$0E
 ```
 
 
-## Instruction Layout
+## Etc
 
 * instructions a 8 bits
 * bits 7-5 are 'a', 4-2 are 'b', 1-0 are 'c' (aaabbbcc)
+* BCD invalid numbers are undocumented behavior
