@@ -358,3 +358,118 @@ TEST_F(OBELISK_TESTS, Move256) {
         ASSERT_TRUE(cpu[dst + i] == i);
     }
 }
+TEST_F(OBELISK_TESTS, Move256Reverse) {
+    u16 src = 0x1000;
+    u16 dst = 0x2000;
+    u8 length = 0xFF;
+
+    for (u16 i = src; i < length; i++) {
+        cpu[src + i] = i;
+    }
+
+    cpu[RESET_START +  0] = LDX_IMM;
+    cpu[RESET_START +  1] = length;
+    cpu[RESET_START +  2] = DEX_IMP;         // Loop
+    cpu[RESET_START +  3] = LDA_ABX;
+    cpu[RESET_START +  4] = lowByte(src);
+    cpu[RESET_START +  5] = highByte(src);
+    cpu[RESET_START +  6] = STA_ABX;
+    cpu[RESET_START +  7] = lowByte(dst);
+    cpu[RESET_START +  8] = highByte(dst);
+    cpu[RESET_START +  9] = CPX_IMM;
+    cpu[RESET_START + 10] = 0;
+    cpu[RESET_START + 11] = BNE_REL;         // Branch to Loop (-9 bytes)
+    cpu[RESET_START + 12] = 0xF7;
+    cpu[RESET_START + 13] = INVALID_INSTRUCTION;
+
+    ASSERT_TRUE(cpu.execute(0, true) == -1);
+    ASSERT_TRUE(cpu.PC == RESET_START + 13);
+    for (u16 i = src; i < length; i++) {
+        ASSERT_TRUE(cpu[dst + i] == length - i);
+    }
+}
+TEST_F(OBELISK_TESTS, Move128Reverse) {
+    u16 src = 0x1000;
+    u16 dst = 0x2000;
+    u8 length = 0x7F;
+
+    for (u16 i = src; i < length; i++) {
+        cpu[src + i] = i;
+    }
+
+    cpu[RESET_START +  0] = LDX_IMM;
+    cpu[RESET_START +  1] = length - 1;
+    cpu[RESET_START +  2] = LDA_ABX;        // Loop
+    cpu[RESET_START +  3] = lowByte(src);
+    cpu[RESET_START +  4] = highByte(src);
+    cpu[RESET_START +  5] = STA_ABX;
+    cpu[RESET_START +  6] = lowByte(dst);
+    cpu[RESET_START +  7] = highByte(dst);
+    cpu[RESET_START +  8] = DEX_IMP;
+    cpu[RESET_START +  9] = BPL_REL;         // Branch to Loop (-7 bytes)
+    cpu[RESET_START + 10] = 0xF9;
+    cpu[RESET_START + 11] = INVALID_INSTRUCTION;
+
+    ASSERT_TRUE(cpu.execute(0, true) == -1);
+    ASSERT_TRUE(cpu.PC == RESET_START + 11);
+    for (u16 i = src; i < length; i++) {
+        ASSERT_TRUE(cpu[dst + i] == length - i);
+    }
+}
+TEST_F(OBELISK_TESTS, MoveGeneric) {
+    u16 src = 0x1234;
+    u16 dst = 0x5678;
+    u16 length = 0x555;
+
+    for (u16 i = src; i < length; i++) {
+        cpu[src + i] = i % 0x100;
+    }
+
+    u16 src_ptr = 0x10;
+    cpu[src_ptr + 0] = lowByte(src);
+    cpu[src_ptr + 1] = highByte(src);
+
+    u16 dst_ptr = 0x12;
+    cpu[dst_ptr + 0] = lowByte(dst);
+    cpu[dst_ptr + 1] = highByte(dst);
+
+
+    cpu[RESET_START +  0] = LDY_IMM;    // MOVFWD
+    cpu[RESET_START +  1] = 0;
+    cpu[RESET_START +  2] = LDX_IMM;
+    cpu[RESET_START +  3] = highByte(length);
+    cpu[RESET_START +  4] = BEQ_REL;    // Branch to FRAG (+16)
+    cpu[RESET_START +  5] = 0x10;
+    cpu[RESET_START +  6] = LDA_IDY;    // PAGE
+    cpu[RESET_START +  7] = src_ptr;
+    cpu[RESET_START +  8] = STA_IDY;
+    cpu[RESET_START +  9] = dst_ptr;
+    cpu[RESET_START + 10] = INY_IMP;
+    cpu[RESET_START + 11] = BNE_REL;    // Branch to PAGE (-5)
+    cpu[RESET_START + 12] = 0xFB;
+    cpu[RESET_START + 13] = INC_ZPG;
+    cpu[RESET_START + 14] = src_ptr + 1;
+    cpu[RESET_START + 15] = INC_ZPG;
+    cpu[RESET_START + 16] = dst_ptr + 1;
+    cpu[RESET_START + 17] = DEX_IMP;
+    cpu[RESET_START + 18] = BNE_REL;    // Branch to PAGE (-12)
+    cpu[RESET_START + 19] = 0xF4;
+    cpu[RESET_START + 20] = CPY_IMM;    // FRAG
+    cpu[RESET_START + 21] = lowByte(length);
+    cpu[RESET_START + 22] = BEQ_REL;    // Branch to DONE (+9)
+    cpu[RESET_START + 23] = 0x9;
+    cpu[RESET_START + 24] = LDA_IDY;
+    cpu[RESET_START + 25] = src_ptr;
+    cpu[RESET_START + 26] = STA_IDY;
+    cpu[RESET_START + 27] = dst_ptr;
+    cpu[RESET_START + 28] = INY_IMP;
+    cpu[RESET_START + 29] = BNE_REL;    // Branch to FRAG (-9)
+    cpu[RESET_START + 30] = 0xF7;
+    cpu[RESET_START + 31] = INVALID_INSTRUCTION;    // DONE
+
+    ASSERT_TRUE(cpu.execute(0, true) == -1);
+    ASSERT_TRUE(cpu.PC == RESET_START + 31);
+    for (u16 i = src; i < length; i++) {
+        ASSERT_TRUE(cpu[dst + i] == i % 0x100);
+    }
+}

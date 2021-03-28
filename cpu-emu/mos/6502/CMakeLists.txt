@@ -7,7 +7,7 @@ project(cpu-emu)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Build type
+# Build type (Release by default)
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -26,3 +26,4 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 # Other nodes to build
 add_subdirectory (src)
 add_subdirectory (test)
+add_subdirectory (bench)

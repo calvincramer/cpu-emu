@@ -2,14 +2,14 @@
 
 ## Build
 ```sh
-# Debug
+# Optimized
 cd <repo>/cpu-emu/mos/6502
 mkdir build-optim
 cd build-optim
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 
-# Optimized
+# Debug
 cd <repo>/cpu-emu/mos/6502
 mkdir build-debug
 cd build-debug
