@@ -417,6 +417,7 @@ namespace mos6502 {
         JSR_ABS = 0x20, RTS_IMP = 0x60,
         BRK_IMP = 0x00, RTI_IMP = 0x40,
         NOP_IMP = 0xEA,
+        INVALID_INSTRUCTION = 0xFF,
     };
 
     const AddrMode INSTR_GET_ADDR_MODE [256] = {
