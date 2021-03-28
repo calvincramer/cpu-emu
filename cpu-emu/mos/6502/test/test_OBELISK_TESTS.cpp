@@ -328,4 +328,33 @@ TEST_F(OBELISK_TESTS, Dec16) {
     ASSERT_TRUE(cpu[mem_addr + 0] == 0xFF);
     ASSERT_TRUE(cpu[mem_addr + 1] == 0x41);
 }
-// TEST_F(OBELISK_TESTS, )
+TEST_F(OBELISK_TESTS, Move256) {
+    u16 src = 0x1000;
+    u16 dst = 0x2000;
+    u8 length = 0xFF;
+
+    for (u16 i = src; i < length; i++) {
+        cpu[src + i] = i;
+    }
+
+    cpu[RESET_START +  0] = LDX_IMM;
+    cpu[RESET_START +  1] = 0;
+    cpu[RESET_START +  2] = LDA_ABX;         // Loop
+    cpu[RESET_START +  3] = lowByte(src);
+    cpu[RESET_START +  4] = highByte(src);
+    cpu[RESET_START +  5] = STA_ABX;
+    cpu[RESET_START +  6] = lowByte(dst);
+    cpu[RESET_START +  7] = highByte(dst);
+    cpu[RESET_START +  8] = INX_IMP;
+    cpu[RESET_START +  9] = CPX_IMM;
+    cpu[RESET_START + 10] = length;
+    cpu[RESET_START + 11] = BNE_REL;         // Branch to Loop (-9 bytes)
+    cpu[RESET_START + 12] = 0xF7;
+    cpu[RESET_START + 13] = INVALID_INSTRUCTION;
+
+    ASSERT_TRUE(cpu.execute(0, true) == -1);
+    ASSERT_TRUE(cpu.PC == RESET_START + 13);
+    for (u16 i = src; i < length; i++) {
+        ASSERT_TRUE(cpu[dst + i] == i);
+    }
+}
